@@ -3,7 +3,7 @@
 Professor: Vinicius Cardoso Garcia  
 
 ## Visão Geral
-O Midiz é uma solução digital baseada em **IA generativa (LLM)** voltada para o **marketing esportivo data-driven**.  
+O Midiaz é uma solução digital baseada em **IA generativa (LLM)** voltada para o **marketing esportivo data-driven**.  
 O sistema transforma fotos esportivas e seus metadados em **insights estratégicos** para marcas, usando **modelos de linguagem (LLMs)** para gerar relatórios e respostas em linguagem natural sobre presença de marca, comportamento de atletas e contexto esportivo.
 
 ---
