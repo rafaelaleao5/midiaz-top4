@@ -29,7 +29,7 @@ As marcas esportivas **não sabem quando, onde e por quem seus produtos são usa
 | Alto Impacto  | 🟩 A. Detecção de marcas e produtos  /  🟩 B. Dashboard de métricas | 🟨 D. Relatórios automatizados (LLM)  /  🟨 F. Mensuração de ROI |
 | Baixo Impacto | 🟦 E. Classificação de contextos esportivos | 🟥 C. API de dados esportivos (alta complexidade, baixo retorno) |
 
-**Legenda:**  
+Legenda:
 🟩 Foco principal (vitórias rápidas)  
 🟨 Projetos estratégicos (fases futuras)  
 🟦 Complementares  
@@ -39,19 +39,17 @@ As marcas esportivas **não sabem quando, onde e por quem seus produtos são usa
 ## 4. Solução Priorizada para Prototipagem
 
 **Solução escolhida:**  
-> **Sistema de detecção de marcas e produtos esportivos + Dashboard analítico com métricas de presença de marca**
+> **Sistema de detecção de marcas e produtos esportivos usando LLM + Dashboard com métricas de presença de marca**
 
 ### 🎯 Justificativa:
 - Alto impacto para validação da proposta de valor do Midiaz B2B;  
 - Base para todos os produtos futuros (API, relatórios e mensuração de ROI);  
-- Menor esforço técnico comparado às soluções com LLM;  
 - Permite entregar resultados tangíveis rapidamente às marcas esportivas.  
 
 ### 🧭 Próximos Passos:
-1. Prototipar o pipeline de detecção (usando AWS Rekognition ou OpenAI Vision).  
-2. Estruturar a base de dados visual e métricas de presença.  
-3. Desenvolver o dashboard interativo para visualização dos insights.  
-4. Testar com um grupo piloto de eventos e marcas parceiras.  
+1. Estruturar a base de dados visual e métricas de presença. 
+2. Desenvolver o dashboard para visualização dos insights.
+3. Geração de relatórios com LLM.
 
 ---
 # Registro de Design de Prompt 
