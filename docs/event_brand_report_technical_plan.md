@@ -12,11 +12,13 @@
 
 ### 1.1. Visão Geral do Produto
 
-O **Event Brand Report** é o produto analítico central do Midiaz B2B, transformando fotos esportivas brutas em insights estruturados sobre presença de marca em eventos esportivos. O MVP foca em processar um evento completo (ex.: Maratona do Recife) e entregar um relatório executivo que responde a três perguntas fundamentais:
+O **Event Brand Report** é o **MVP e primeiro produto** do Midiaz B2B, transformando fotos esportivas já processadas e armazenadas no S3 (pelo sistema B2C - marketplace) em insights estruturados sobre presença de marca em eventos esportivos. O MVP foca em processar um evento completo (ex.: Maratona do Recife) e entregar um relatório executivo que responde a três perguntas fundamentais:
 
 1. **Quais marcas aparecem mais no evento?**
 2. **Quais produtos são mais usados pelos atletas?**
 3. **Qual é o share de mercado visual de cada marca?**
+
+**Fonte de Dados:** O sistema consome fotos que já foram processadas e estão armazenadas no S3 pelo sistema Midiaz B2C (marketplace). Quando uma pessoa está cadastrada na Midiaz, temos acesso a dados cadastrais como CPF, idade, gênero, entre outros, que podem ser utilizados para enriquecimento dos dados.
 
 ### 1.2. Principais Entregáveis
 
@@ -42,21 +44,23 @@ O **Event Brand Report** é o produto analítico central do Midiaz B2B, transfor
 
 ### 1.4. Stakeholders
 
-| Stakeholder | Interesse | Entregável Principal |
-|-------------|-----------|---------------------|
-| **Organizadores de Eventos** | Validar atratividade para patrocinadores | Relatório de presença de marca |
-| **Marcas Patrocinadoras** | Medir ROI e eficácia de ativações | Dashboard com métricas de share |
-| **Marcas do Setor** | Benchmarking competitivo | Comparativo de presença visual |
-| **Midiaz (Interno)** | Validar proposta de valor B2B | Pipeline funcional e case de sucesso |
+| Stakeholder | Interesse |
+|-------------|-----------|
+| **Organizadores de Eventos** | Validar atratividade para patrocinadores através de dados de presença de marca |
+| **Marcas Patrocinadoras** | Medir ROI e eficácia de ativações com métricas objetivas |
+| **Midiaz (Interno)** | Validar proposta de valor B2B e criar case de sucesso |
+
+**Nota:** Os entregáveis variam caso a caso, podendo incluir relatórios PDF, dashboards interativos, APIs de dados ou datasets exportáveis, dependendo das necessidades específicas de cada stakeholder.
 
 ### 1.5. Escopo do MVP - Dentro e Fora
 
 #### ✅ **DENTRO DO MVP**
 
 1. **Processamento de 1 evento completo**
-   - Ingestão de fotos via S3 ou upload direto
+   - Ingestão de fotos já processadas e armazenadas no S3 (sistema B2C)
    - Processamento batch (não real-time)
    - Suporte a 5-10 marcas principais (Nike, Adidas, Mizuno, Track&Field, etc.)
+   - Enriquecimento com dados cadastrais quando pessoa está cadastrada na Midiaz (CPF, idade, gênero, etc.)
 
 2. **Extração de dados básicos**
    - Detecção de marca (logotipo)
@@ -118,39 +122,41 @@ O **Event Brand Report** é o produto analítico central do Midiaz B2B, transfor
 ```mermaid
 graph TB
     subgraph "Ingestão"
-        A[Fotógrafos] -->|Upload Fotos| B[S3 Bucket Raw]
+        A[Sistema B2C<br/>Marketplace] -->|Fotos Processadas| B[S3 Bucket<br/>Midiaz B2C]
         C[Metadados Evento] -->|JSON| D[API FastAPI]
     end
     
     subgraph "Processamento"
-        B -->|Trigger| E[Lambda/EC2 Processor]
+        B -->|Consome Fotos| E[Lambda/EC2 Processor]
         D -->|Event Metadata| E
         E -->|Vision API| F[AWS Rekognition/OpenAI Vision]
         F -->|Detections| G[PostgreSQL]
     end
     
     subgraph "Enriquecimento"
-        G -->|Raw Detections| H[Data Enrichment Service]
-        H -->|Normalized Data| G
+        G -->|CPF| I[Dados Cadastrais<br/>Midiaz B2C]
+        I -->|Idade, Gênero, etc| G
+        G -->|Raw Detections| J[Data Enrichment Service]
+        J -->|Normalized Data| G
     end
     
     subgraph "Agregação"
-        G -->|Structured Data| I[Aggregation Engine]
-        I -->|Metrics| J[Analytical Tables]
+        G -->|Structured Data| K[Aggregation Engine]
+        K -->|Metrics| L[Analytical Tables]
     end
     
     subgraph "Entrega"
-        J -->|Data| K[Metabase Dashboard]
-        J -->|Data| L[Report Generator LLM]
-        L -->|PDF| M[S3 Reports]
-        J -->|API| N[FastAPI REST]
+        L -->|Data| M[Metabase Dashboard]
+        L -->|Data| N[Report Generator LLM]
+        N -->|PDF| O[S3 Reports]
+        L -->|API| P[FastAPI REST]
     end
     
     style B fill:#e1f5ff
     style G fill:#fff4e1
-    style J fill:#e8f5e9
-    style K fill:#f3e5f5
+    style L fill:#e8f5e9
     style M fill:#f3e5f5
+    style O fill:#f3e5f5
 ```
 
 **Decisão Arquitetural:** Optamos por uma arquitetura **híbrida serverless + containerizada**:
@@ -165,18 +171,19 @@ graph TB
 
 ```mermaid
 flowchart LR
-    A[Fotos Raw<br/>S3] -->|Ingest| B[Preprocessing<br/>Resize/Normalize]
-    B -->|Batch| C[Vision API<br/>Rekognition/Vision]
-    C -->|JSON Detections| D[Extraction Service<br/>Parse & Validate]
-    D -->|Structured| E[PostgreSQL<br/>Raw Detections]
-    E -->|ETL| F[Enrichment<br/>Normalize Brands]
+    A[Fotos Processadas<br/>S3 B2C] -->|Consome| B[Person Detection<br/>+ Item Detection]
+    B -->|Pessoas + Itens| C[Association Service<br/>Associa Itens a Pessoas]
+    C -->|Pessoa + Itens| D[PostgreSQL<br/>Person Items]
+    D -->|CPF| E[Enrichment<br/>Dados Cadastrais B2C]
+    E -->|Idade, Gênero| D
+    D -->|ETL| F[Normalize Brands<br/>+ Products]
     F -->|Enriched| G[PostgreSQL<br/>Normalized Data]
     G -->|Aggregation| H[Analytical Tables<br/>Brand Metrics]
     H -->|Query| I[Dashboard/Report]
     
     style A fill:#ffebee
-    style E fill:#fff3e0
-    style G fill:#e8f5e9
+    style C fill:#fff3e0
+    style D fill:#e8f5e9
     style H fill:#e3f2fd
 ```
 
@@ -442,7 +449,112 @@ def preprocess_image(image_bytes: bytes) -> bytes:
     return output.getvalue()
 ```
 
-#### 2.4.6. Armazenamento de Resultados
+#### 2.4.6. Associação de Itens a Pessoas
+
+**Problema Crítico:** Uma foto pode conter múltiplas pessoas, cada uma usando diferentes itens (tênis, camiseta, etc.). É fundamental garantir que os itens detectados sejam corretamente associados à pessoa que os está usando, evitando misturar itens de pessoas diferentes.
+
+**Solução: Detecção de Pessoas + Associação por Proximidade Espacial**
+
+**Processo:**
+1. **Detectar Pessoas:** Usar API de visão para detectar pessoas na foto (bounding boxes)
+2. **Detectar Itens:** Detectar marcas e produtos com seus bounding boxes
+3. **Associar por Proximidade:** Para cada item, encontrar a pessoa mais próxima usando cálculo de distância entre bounding boxes
+4. **Validar Associação:** Item deve estar dentro ou próximo do bounding box da pessoa (threshold configurável)
+5. **Calcular Confiança:** `association_confidence` baseado na proximidade e sobreposição
+
+**Algoritmo de Associação:**
+
+```python
+def associate_items_to_persons(photo_id, persons_detections, items_detections):
+    """
+    Associa itens detectados às pessoas corretas na foto.
+    
+    Args:
+        persons_detections: Lista de detecções de pessoas com bounding boxes
+        items_detections: Lista de detecções de itens (marcas/produtos) com bounding boxes
+    
+    Returns:
+        Lista de associações pessoa-item com confiança
+    """
+    associations = []
+    
+    for item in items_detections:
+        best_person = None
+        best_distance = float('inf')
+        best_overlap = 0
+        
+        for person in persons_detections:
+            # Calcular distância entre centros dos bounding boxes
+            distance = euclidean_distance(
+                get_center(item.bbox),
+                get_center(person.bbox)
+            )
+            
+            # Calcular sobreposição (IoU - Intersection over Union)
+            overlap = calculate_iou(item.bbox, person.bbox)
+            
+            # Verificar se item está dentro ou próximo da pessoa
+            if is_item_near_person(item.bbox, person.bbox, threshold=50):
+                # Priorizar sobreposição, depois distância
+                if overlap > best_overlap or (overlap == best_overlap and distance < best_distance):
+                    best_distance = distance
+                    best_overlap = overlap
+                    best_person = person
+        
+        if best_person:
+            # Calcular confiança da associação
+            association_confidence = calculate_association_confidence(
+                item.bbox,
+                best_person.bbox,
+                best_distance,
+                best_overlap
+            )
+            
+            associations.append({
+                'person_id': best_person.id,
+                'item': item,
+                'association_confidence': association_confidence,
+                'distance': best_distance,
+                'overlap': best_overlap
+            })
+        else:
+            # Item não associado a nenhuma pessoa (pode ser item solto na foto)
+            associations.append({
+                'person_id': None,
+                'item': item,
+                'association_confidence': 0.0,
+                'note': 'item_not_associated'
+            })
+    
+    return associations
+
+def calculate_association_confidence(item_bbox, person_bbox, distance, overlap):
+    """
+    Calcula confiança da associação baseado em:
+    - Sobreposição (IoU): quanto maior, melhor
+    - Distância: quanto menor, melhor
+    """
+    # Normalizar distância (assumindo imagem 1024x1024)
+    normalized_distance = distance / 1448.0  # diagonal máxima
+    
+    # Fórmula: overlap tem peso 0.7, distância tem peso 0.3
+    confidence = (overlap * 0.7) + ((1 - normalized_distance) * 0.3)
+    
+    return min(1.0, max(0.0, confidence))
+```
+
+**Requisitos Técnicos:**
+- **Bounding boxes obrigatórios:** Tanto para pessoas quanto para itens
+- **API de detecção de pessoas:** AWS Rekognition DetectFaces ou similar
+- **Threshold de proximidade:** Configurável (padrão: 50 pixels)
+- **Filtro de confiança:** Associações com `association_confidence < 0.5` podem ser descartadas
+
+**Casos Especiais:**
+- **Item não associado:** Se item não está próximo de nenhuma pessoa, pode ser descartado ou marcado como "não associado"
+- **Múltiplos itens da mesma pessoa:** Uma pessoa pode ter múltiplos itens (tênis + camiseta + boné)
+- **Item parcialmente visível:** Se apenas parte do item está visível, usar bounding box parcial
+
+#### 2.4.7. Armazenamento de Resultados
 
 **Estrutura no PostgreSQL:**
 
@@ -614,6 +726,12 @@ midiaz-b2b/
 │   ├── openai_vision_client.py # Cliente OpenAI Vision
 │   ├── detection_parser.py    # Parse respostas da API
 │   └── confidence_filter.py   # Filtra por confiança mínima
+│
+├── person_association/    # Associação de itens a pessoas
+│   ├── person_detector.py     # Detecta pessoas na foto
+│   ├── item_associator.py     # Associa itens a pessoas por proximidade
+│   ├── bbox_calculator.py     # Cálculos de bounding boxes (IoU, distância)
+│   └── association_validator.py # Valida associações
 │
 ├── data_enrichment/       # Enriquecimento de dados
 │   ├── brand_normalizer.py    # Normaliza nomes de marcas
@@ -977,16 +1095,19 @@ def process_event_batch(event_id: str):
 | `confidence` | Decimal(5,4) | Confiança do modelo | 0.8567 | ✅ |
 | `subcategory` | String(100) | Subcategoria (ex: "tênis corrida") | "tênis corrida" | ❌ (v2) |
 
-#### 4.1.3. Metadados do Atleta (Anonimizado)
+#### 4.1.3. Metadados da Pessoa/Atleta
 
 | Campo | Tipo | Descrição | Exemplo | Obrigatório MVP |
 |-------|------|-----------|---------|-----------------|
-| `athlete_id` | UUID | ID único anonimizado | uuid | ✅ |
-| `photo_count` | Integer | Quantas fotos o atleta aparece | 5 | ✅ |
+| `cpf` | String(11) | CPF da pessoa (chave para enriquecimento) | "12345678901" | ✅ (se cadastrada) |
+| `person_id` | UUID | ID único da pessoa no evento | uuid | ✅ |
+| `age` | Integer | Idade (se disponível via dados cadastrais) | 35 | ⚠️ (se cadastrada) |
+| `gender` | String(10) | Gênero (se disponível via dados cadastrais) | "M" ou "F" | ⚠️ (se cadastrada) |
+| `photo_count` | Integer | Quantas fotos a pessoa aparece | 5 | ✅ |
 | `first_seen` | Timestamp | Primeira aparição no evento | 2025-05-12T06:00:00Z | ✅ |
 | `last_seen` | Timestamp | Última aparição | 2025-05-12T10:30:00Z | ✅ |
 
-**Nota:** No MVP, não identificamos atletas específicos. `athlete_id` é gerado por hash da face (se disponível) ou posição na foto.
+**Nota:** Cada pessoa tem um registro único por evento. Se a pessoa está cadastrada na Midiaz, temos CPF e dados cadastrais (idade, gênero, etc.) para enriquecimento. Se não estiver cadastrada, o registro terá apenas `person_id` gerado.
 
 #### 4.1.4. Metadados do Fotógrafo
 
@@ -1005,6 +1126,8 @@ def process_event_batch(event_id: str):
 | `time_of_day` | Time | Horário da foto | 06:30:00 | ⚠️ (se disponível) |
 
 ### 4.2. Modelo Tabular Final
+
+**Princípio Fundamental:** Cada registro na tabela de dados extraídos representa **UMA PESSOA** em um evento específico. Mesmo que a mesma pessoa apareça em múltiplas fotos, há apenas um registro por pessoa por evento. Os itens detectados (marcas, produtos) são associados à pessoa através de bounding boxes e detecção de pessoas.
 
 #### 4.2.1. Tabela: `events`
 
@@ -1065,9 +1188,62 @@ CREATE INDEX idx_photos_event ON photos_raw(event_id);
 CREATE INDEX idx_photos_status ON photos_raw(processing_status);
 ```
 
-#### 4.2.3. Tabela: `raw_detections`
+#### 4.2.3. Tabela: `event_persons`
 
-Detecções brutas da API de visão computacional.
+**Registro único de cada pessoa por evento.** Esta é a tabela central que garante que cada pessoa tenha apenas um registro por evento, mesmo aparecendo em múltiplas fotos.
+
+```sql
+CREATE TABLE event_persons (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    cpf VARCHAR(11), -- CPF se pessoa está cadastrada na Midiaz (chave para enriquecimento)
+    person_id UUID NOT NULL, -- ID único da pessoa (gerado ou do sistema B2C)
+    age INTEGER, -- Idade (se disponível via dados cadastrais)
+    gender VARCHAR(10), -- Gênero (se disponível via dados cadastrais)
+    photo_count INTEGER DEFAULT 0, -- Quantas fotos a pessoa aparece
+    first_seen TIMESTAMP, -- Primeira aparição no evento
+    last_seen TIMESTAMP, -- Última aparição no evento
+    is_registered BOOLEAN DEFAULT FALSE, -- Se pessoa está cadastrada na Midiaz
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(event_id, person_id), -- Garante registro único por pessoa por evento
+    UNIQUE(event_id, cpf) -- Se CPF disponível, também garante unicidade
+);
+
+CREATE INDEX idx_persons_event ON event_persons(event_id);
+CREATE INDEX idx_persons_cpf ON event_persons(cpf) WHERE cpf IS NOT NULL;
+CREATE INDEX idx_persons_person_id ON event_persons(person_id);
+```
+
+**Estratégia de Identificação:**
+- Se pessoa está cadastrada na Midiaz: usar CPF como identificador principal
+- Se pessoa não está cadastrada: usar `person_id` gerado (hash de face ou posição)
+- Garantir que mesmo pessoa em múltiplas fotos = 1 registro na tabela
+
+#### 4.2.4. Tabela: `photo_persons`
+
+Associação entre fotos e pessoas detectadas na foto. Uma foto pode ter múltiplas pessoas.
+
+```sql
+CREATE TABLE photo_persons (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    photo_id UUID NOT NULL REFERENCES photos_raw(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL, -- Referência a event_persons.person_id
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    person_bounding_box JSONB NOT NULL, -- {x, y, width, height} da pessoa na foto
+    detection_confidence DECIMAL(5,4), -- Confiança da detecção de pessoa
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(photo_id, person_id) -- Uma pessoa aparece uma vez por foto
+);
+
+CREATE INDEX idx_photo_persons_photo ON photo_persons(photo_id);
+CREATE INDEX idx_photo_persons_person ON photo_persons(person_id);
+CREATE INDEX idx_photo_persons_event ON photo_persons(event_id);
+```
+
+#### 4.2.5. Tabela: `raw_detections`
+
+Detecções brutas de itens (marcas e produtos) da API de visão computacional. **IMPORTANTE:** Estas detecções ainda não estão associadas a pessoas.
 
 ```sql
 CREATE TABLE raw_detections (
@@ -1075,10 +1251,10 @@ CREATE TABLE raw_detections (
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     photo_id UUID NOT NULL REFERENCES photos_raw(id) ON DELETE CASCADE,
     photo_s3_key VARCHAR(500) NOT NULL,
-    detection_type VARCHAR(50) NOT NULL CHECK (detection_type IN ('brand', 'product')),
+    detection_type VARCHAR(50) NOT NULL CHECK (detection_type IN ('brand', 'product', 'person')),
     detected_label VARCHAR(200) NOT NULL, -- Nome bruto da API
     confidence_score DECIMAL(5,4) NOT NULL CHECK (confidence_score >= 0 AND confidence_score <= 1),
-    bounding_box JSONB, -- {x, y, width, height} - NULL no MVP
+    bounding_box JSONB NOT NULL, -- {x, y, width, height} - OBRIGATÓRIO para associação
     raw_response JSONB, -- Resposta completa da API para debug
     model_version VARCHAR(50), -- Versão do modelo usado
     created_at TIMESTAMP DEFAULT NOW()
@@ -1091,7 +1267,76 @@ CREATE INDEX idx_detections_label ON raw_detections(detected_label);
 CREATE INDEX idx_detections_confidence ON raw_detections(confidence_score);
 ```
 
-#### 4.2.4. Tabela: `brand_normalization`
+**Nota:** Bounding boxes são **obrigatórios** no MVP para permitir associação correta de itens a pessoas.
+
+#### 4.2.6. Tabela: `person_items`
+
+**Tabela central que associa itens detectados (marcas e produtos) às pessoas corretas.** Esta tabela resolve o problema de garantir que itens de uma pessoa não sejam misturados com itens de outra pessoa na mesma foto.
+
+```sql
+CREATE TABLE person_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    person_id UUID NOT NULL, -- Referência a event_persons.person_id
+    photo_id UUID NOT NULL REFERENCES photos_raw(id) ON DELETE CASCADE,
+    item_type VARCHAR(50) NOT NULL CHECK (item_type IN ('brand', 'product')),
+    brand VARCHAR(200), -- Marca detectada (se item_type = 'brand' ou produto tem marca)
+    product_type VARCHAR(50), -- Tipo de produto (se item_type = 'product')
+    normalized_brand VARCHAR(200), -- Marca normalizada
+    confidence_score DECIMAL(5,4) NOT NULL,
+    item_bounding_box JSONB NOT NULL, -- Bounding box do item na foto
+    person_bounding_box JSONB NOT NULL, -- Bounding box da pessoa associada
+    association_confidence DECIMAL(5,4), -- Confiança da associação item-pessoa
+    source_detection_id UUID REFERENCES raw_detections(id),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_person_items_event ON person_items(event_id);
+CREATE INDEX idx_person_items_person ON person_items(person_id);
+CREATE INDEX idx_person_items_photo ON person_items(photo_id);
+CREATE INDEX idx_person_items_brand ON person_items(normalized_brand);
+CREATE INDEX idx_person_items_product ON person_items(product_type);
+CREATE INDEX idx_person_items_type ON person_items(item_type);
+```
+
+**Estratégia de Associação Item-Pessoa:**
+1. Detectar pessoas na foto (bounding boxes de pessoas)
+2. Detectar itens na foto (bounding boxes de marcas/produtos)
+3. Associar item à pessoa mais próxima usando cálculo de distância entre bounding boxes
+4. Validar associação: item deve estar dentro ou próximo do bounding box da pessoa
+5. Calcular `association_confidence` baseado na proximidade e sobreposição
+
+**Algoritmo de Associação (Pseudocódigo):**
+```python
+def associate_items_to_persons(photo_id, persons, items):
+    associations = []
+    
+    for item in items:
+        best_person = None
+        best_distance = float('inf')
+        
+        for person in persons:
+            # Calcular distância entre centro do item e centro da pessoa
+            distance = calculate_distance(item.bbox, person.bbox)
+            
+            # Verificar se item está dentro ou próximo da pessoa
+            if is_item_near_person(item.bbox, person.bbox, threshold=50):
+                if distance < best_distance:
+                    best_distance = distance
+                    best_person = person
+        
+        if best_person:
+            association_confidence = calculate_confidence(item.bbox, best_person.bbox)
+            associations.append({
+                'person_id': best_person.id,
+                'item': item,
+                'confidence': association_confidence
+            })
+    
+    return associations
+```
+
+#### 4.2.7. Tabela: `brand_normalization`
 
 Mapeamento de labels brutos para marcas normalizadas.
 
@@ -1116,33 +1361,11 @@ CREATE INDEX idx_brand_norm_label ON brand_normalization(detected_label);
 CREATE INDEX idx_brand_norm_brand ON brand_normalization(normalized_brand);
 ```
 
-#### 4.2.5. Tabela: `extracted_items`
+**Nota:** A tabela `extracted_items` foi substituída por `person_items`, que já contém a associação pessoa-item. Esta mudança garante que cada item detectado está corretamente associado à pessoa que o está usando.
 
-Items extraídos e normalizados (marcas e produtos).
+#### 4.2.8. Tabela: `brand_event_summary`
 
-```sql
-CREATE TABLE extracted_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    photo_id UUID NOT NULL REFERENCES photos_raw(id) ON DELETE CASCADE,
-    item_type VARCHAR(50) NOT NULL CHECK (item_type IN ('brand', 'product')),
-    brand VARCHAR(200), -- NULL se for apenas produto sem marca
-    product_type VARCHAR(50), -- NULL se for apenas marca
-    normalized_brand VARCHAR(200), -- Marca normalizada (via brand_normalization)
-    confidence_score DECIMAL(5,4) NOT NULL,
-    source_detection_id UUID REFERENCES raw_detections(id),
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX idx_items_event ON extracted_items(event_id);
-CREATE INDEX idx_items_brand ON extracted_items(normalized_brand);
-CREATE INDEX idx_items_product ON extracted_items(product_type);
-CREATE INDEX idx_items_type ON extracted_items(item_type);
-```
-
-#### 4.2.6. Tabela: `brand_event_summary`
-
-Métricas agregadas por marca e evento (view materializada).
+Métricas agregadas por marca e evento (view materializada). **Atualizada para usar `person_items`.**
 
 ```sql
 CREATE MATERIALIZED VIEW brand_event_summary AS
@@ -1150,26 +1373,27 @@ SELECT
     e.id as event_id,
     e.event_name,
     e.event_date,
-    ei.normalized_brand,
-    COUNT(DISTINCT ei.photo_id) as photos_with_brand,
-    COUNT(DISTINCT ei.id) as total_detections,
-    AVG(ei.confidence_score) as avg_confidence,
-    MIN(ei.confidence_score) as min_confidence,
-    MAX(ei.confidence_score) as max_confidence,
+    pi.normalized_brand,
+    COUNT(DISTINCT pi.person_id) as persons_with_brand, -- Pessoas únicas com a marca
+    COUNT(DISTINCT pi.photo_id) as photos_with_brand,
+    COUNT(DISTINCT pi.id) as total_detections,
+    AVG(pi.confidence_score) as avg_confidence,
+    MIN(pi.confidence_score) as min_confidence,
+    MAX(pi.confidence_score) as max_confidence,
     ROUND(
-        100.0 * COUNT(DISTINCT ei.id) / 
-        NULLIF((SELECT COUNT(*) FROM extracted_items WHERE event_id = e.id AND item_type = 'brand'), 0),
+        100.0 * COUNT(DISTINCT pi.id) / 
+        NULLIF((SELECT COUNT(*) FROM person_items WHERE event_id = e.id AND item_type = 'brand'), 0),
         2
     ) as brand_share_percent,
     ROUND(
-        100.0 * COUNT(DISTINCT ei.photo_id) / 
-        NULLIF((SELECT COUNT(DISTINCT photo_id) FROM photos_raw WHERE event_id = e.id), 0),
+        100.0 * COUNT(DISTINCT pi.person_id) / 
+        NULLIF((SELECT COUNT(DISTINCT person_id) FROM event_persons WHERE event_id = e.id), 0),
         2
-    ) as photo_coverage_percent
+    ) as person_coverage_percent
 FROM events e
-JOIN extracted_items ei ON ei.event_id = e.id
-WHERE ei.item_type = 'brand' AND ei.normalized_brand IS NOT NULL
-GROUP BY e.id, e.event_name, e.event_date, ei.normalized_brand;
+JOIN person_items pi ON pi.event_id = e.id
+WHERE pi.item_type = 'brand' AND pi.normalized_brand IS NOT NULL
+GROUP BY e.id, e.event_name, e.event_date, pi.normalized_brand;
 
 CREATE UNIQUE INDEX idx_brand_summary_unique ON brand_event_summary(event_id, normalized_brand);
 CREATE INDEX idx_brand_summary_event ON brand_event_summary(event_id);
@@ -1182,33 +1406,34 @@ CREATE INDEX idx_brand_summary_brand ON brand_event_summary(normalized_brand);
 REFRESH MATERIALIZED VIEW CONCURRENTLY brand_event_summary;
 ```
 
-#### 4.2.7. Tabela: `product_event_summary`
+#### 4.2.9. Tabela: `product_event_summary`
 
-Métricas agregadas por produto e evento.
+Métricas agregadas por produto e evento. **Atualizada para usar `person_items`.**
 
 ```sql
 CREATE MATERIALIZED VIEW product_event_summary AS
 SELECT 
     e.id as event_id,
     e.event_name,
-    ei.product_type,
-    COUNT(DISTINCT ei.photo_id) as photos_with_product,
-    COUNT(DISTINCT ei.id) as total_detections,
-    AVG(ei.confidence_score) as avg_confidence,
+    pi.product_type,
+    COUNT(DISTINCT pi.person_id) as persons_with_product, -- Pessoas únicas com o produto
+    COUNT(DISTINCT pi.photo_id) as photos_with_product,
+    COUNT(DISTINCT pi.id) as total_detections,
+    AVG(pi.confidence_score) as avg_confidence,
     ROUND(
-        100.0 * COUNT(DISTINCT ei.id) / 
-        NULLIF((SELECT COUNT(*) FROM extracted_items WHERE event_id = e.id AND item_type = 'product'), 0),
+        100.0 * COUNT(DISTINCT pi.id) / 
+        NULLIF((SELECT COUNT(*) FROM person_items WHERE event_id = e.id AND item_type = 'product'), 0),
         2
     ) as product_share_percent
 FROM events e
-JOIN extracted_items ei ON ei.event_id = e.id
-WHERE ei.item_type = 'product' AND ei.product_type IS NOT NULL
-GROUP BY e.id, e.event_name, ei.product_type;
+JOIN person_items pi ON pi.event_id = e.id
+WHERE pi.item_type = 'product' AND pi.product_type IS NOT NULL
+GROUP BY e.id, e.event_name, pi.product_type;
 
 CREATE UNIQUE INDEX idx_product_summary_unique ON product_event_summary(event_id, product_type);
 ```
 
-#### 4.2.8. Tabela: `report_metadata`
+#### 4.2.10. Tabela: `report_metadata`
 
 Metadados dos relatórios gerados.
 
@@ -1247,9 +1472,10 @@ Brand Share (%) = (Detecções da Marca / Total de Detecções) × 100
 ```sql
 SELECT 
     normalized_brand,
+    COUNT(DISTINCT person_id) as persons_count, -- Pessoas únicas
     COUNT(*) as detections,
     ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 2) as share_percent
-FROM extracted_items
+FROM person_items
 WHERE event_id = '...' AND item_type = 'brand'
 GROUP BY normalized_brand
 ORDER BY share_percent DESC;
@@ -1372,89 +1598,150 @@ async def preprocess_image(image_bytes: bytes) -> bytes:
 
 #### 5.1.3. Inferência de Visão Computacional
 
-**Objetivo:** Detectar marcas e produtos nas imagens.
+**Objetivo:** Detectar pessoas, marcas e produtos nas imagens.
 
 **Processo:**
 1. Agrupar imagens em batches de 10
-2. Chamar API de visão (Rekognition ou OpenAI)
+2. Chamar API de visão para detectar:
+   - Pessoas (com bounding boxes)
+   - Marcas (com bounding boxes)
+   - Produtos (com bounding boxes)
 3. Parse da resposta
 4. Filtrar por confiança mínima (threshold: 0.6)
 5. Salvar detecções brutas no banco
 
 **Código:**
 ```python
-async def process_vision_batch(photos: List[Photo]) -> List[RawDetection]:
-    detections = []
+async def process_vision_batch(photos: List[Photo]) -> Tuple[List[PersonDetection], List[ItemDetection]]:
+    person_detections = []
+    item_detections = []
     
     for photo in photos:
         image_bytes = await s3_service.download(photo.s3_key)
         processed_image = await preprocess_image(image_bytes)
         
-        # Chamada à API
-        response = await vision_service.detect(processed_image)
+        # Chamada à API - detectar pessoas e itens
+        response = await vision_service.detect_all(processed_image)
         
-        # Parse e filtro
-        for detection in response.detections:
-            if detection.confidence >= 0.6:
-                detections.append(RawDetection(
+        # Parse pessoas
+        for person in response.persons:
+            if person.confidence >= 0.6:
+                person_detections.append(PersonDetection(
                     event_id=photo.event_id,
                     photo_id=photo.id,
-                    detection_type=detection.type,
-                    detected_label=detection.label,
-                    confidence_score=detection.confidence,
+                    bounding_box=person.bbox,
+                    confidence_score=person.confidence
+                ))
+        
+        # Parse itens (marcas e produtos)
+        for item in response.items:
+            if item.confidence >= 0.6:
+                item_detections.append(RawDetection(
+                    event_id=photo.event_id,
+                    photo_id=photo.id,
+                    detection_type=item.type,  # 'brand' ou 'product'
+                    detected_label=item.label,
+                    confidence_score=item.confidence,
+                    bounding_box=item.bbox,  # OBRIGATÓRIO
                     raw_response=response.raw
                 ))
     
     # Salvar em lote
-    await db_writer.save_batch(detections)
-    return detections
+    await db_writer.save_persons_batch(person_detections)
+    await db_writer.save_detections_batch(item_detections)
+    
+    return person_detections, item_detections
 ```
 
-#### 5.1.4. Transformação e Enriquecimento
+#### 5.1.4. Associação de Itens a Pessoas
 
-**Objetivo:** Normalizar dados e enriquecer com contexto.
+**Objetivo:** Associar itens detectados (marcas e produtos) às pessoas corretas na foto.
 
 **Processo:**
-1. Normalizar nomes de marcas (via `brand_normalization`)
-2. Classificar produtos (validar categoria)
-3. Adicionar metadados do evento
-4. Criar registros em `extracted_items`
+1. Para cada foto, buscar pessoas e itens detectados
+2. Associar cada item à pessoa mais próxima usando algoritmo de proximidade espacial
+3. Validar associações (threshold de confiança)
+4. Criar registros em `person_items` (tabela final)
 
 **Código:**
 ```python
-async def enrich_detections(raw_detections: List[RawDetection]) -> List[ExtractedItem]:
-    enriched = []
+async def associate_items_to_persons(photo_id: UUID, event_id: UUID):
+    # Buscar pessoas e itens da foto
+    persons = await db_service.get_persons_in_photo(photo_id)
+    items = await db_service.get_items_in_photo(photo_id)
     
-    for detection in raw_detections:
-        if detection.detection_type == 'brand':
-            # Normalizar marca
-            normalized = await brand_normalizer.normalize(detection.detected_label)
+    # Associar itens a pessoas
+    associations = await association_service.associate(persons, items)
+    
+    # Normalizar marcas e validar produtos
+    person_items = []
+    for assoc in associations:
+        if assoc.person_id and assoc.association_confidence >= 0.5:
+            # Normalizar marca (se aplicável)
+            normalized_brand = None
+            if assoc.item.detection_type == 'brand':
+                normalized_brand = await brand_normalizer.normalize(assoc.item.detected_label)
+            elif assoc.item.detection_type == 'product' and assoc.item.brand:
+                normalized_brand = await brand_normalizer.normalize(assoc.item.brand)
             
-            enriched.append(ExtractedItem(
-                event_id=detection.event_id,
-                photo_id=detection.photo_id,
-                item_type='brand',
-                brand=detection.detected_label,
-                normalized_brand=normalized,
-                confidence_score=detection.confidence_score
-            ))
-        elif detection.detection_type == 'product':
-            # Validar categoria
-            product_type = await product_classifier.classify(detection.detected_label)
+            # Validar categoria de produto
+            product_type = None
+            if assoc.item.detection_type == 'product':
+                product_type = await product_classifier.classify(assoc.item.detected_label)
             
-            enriched.append(ExtractedItem(
-                event_id=detection.event_id,
-                photo_id=detection.photo_id,
-                item_type='product',
+            person_items.append(PersonItem(
+                event_id=event_id,
+                person_id=assoc.person_id,
+                photo_id=photo_id,
+                item_type=assoc.item.detection_type,
+                brand=assoc.item.detected_label if assoc.item.detection_type == 'brand' else assoc.item.brand,
                 product_type=product_type,
-                confidence_score=detection.confidence_score
+                normalized_brand=normalized_brand,
+                confidence_score=assoc.item.confidence_score,
+                item_bounding_box=assoc.item.bbox,
+                person_bounding_box=assoc.person.bbox,
+                association_confidence=assoc.association_confidence,
+                source_detection_id=assoc.item.id
             ))
     
-    await db_writer.save_extracted_items(enriched)
-    return enriched
+    # Salvar associações
+    await db_writer.save_person_items(person_items)
+    
+    # Atualizar contadores de pessoas
+    await update_person_photo_count(event_id, associations)
+    
+    return person_items
 ```
 
-#### 5.1.5. Agregação
+#### 5.1.5. Enriquecimento com Dados Cadastrais
+
+**Objetivo:** Enriquecer registros de pessoas com dados cadastrais (CPF, idade, gênero) quando disponíveis.
+
+**Processo:**
+1. Para cada pessoa no evento, verificar se tem CPF
+2. Se tiver CPF, buscar dados cadastrais no sistema B2C
+3. Atualizar registro em `event_persons` com idade, gênero, etc.
+
+**Código:**
+```python
+async def enrich_persons_with_cadastral_data(event_id: UUID):
+    persons = await db_service.get_persons_by_event(event_id)
+    
+    for person in persons:
+        if person.cpf:
+            # Buscar dados cadastrais no sistema B2C
+            cadastral_data = await b2c_service.get_person_data(person.cpf)
+            
+            if cadastral_data:
+                await db_service.update_person(
+                    person.id,
+                    age=cadastral_data.age,
+                    gender=cadastral_data.gender,
+                    is_registered=True
+                )
+```
+
+#### 5.1.6. Agregação
 
 **Objetivo:** Calcular métricas agregadas por evento.
 
@@ -1485,7 +1772,7 @@ async def aggregate_event_metrics(event_id: UUID):
     }
 ```
 
-#### 5.1.6. Geração do Dataset Final
+#### 5.1.7. Geração do Dataset Final
 
 **Objetivo:** Criar tabelas analíticas prontas para consumo.
 
@@ -1494,7 +1781,7 @@ async def aggregate_event_metrics(event_id: UUID):
 2. Exportar para CSV/Parquet (opcional)
 3. Disponibilizar via API
 
-#### 5.1.7. Geração do Relatório
+#### 5.1.8. Geração do Relatório
 
 **Objetivo:** Gerar relatório PDF com insights em linguagem natural.
 
