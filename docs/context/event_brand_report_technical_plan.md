@@ -1271,95 +1271,61 @@ CREATE INDEX idx_detections_confidence ON raw_detections(confidence_score);
 
 #### 4.2.6. Tabela: `person_items`
 
-**Tabela central que associa itens detectados (marcas e produtos) às pessoas corretas.** Esta tabela resolve o problema de garantir que itens de uma pessoa não sejam misturados com itens de outra pessoa na mesma foto.
+**Tabela central que associa itens detectados (marcas e produtos) às pessoas corretas.** Cada registro representa um tipo de produto de uma pessoa em um evento específico.
+
+**Regras de Negócio:**
+- Cada pessoa pode ter apenas **um registro por tipo de produto** no mesmo evento (ex: uma pessoa não pode ter dois tênis no mesmo evento)
+- Campos **sempre preenchidos**: `event_id`, `person_id`, `product_type`, `brand`
+- Campo **opcional**: `product_name` (só preenchido quando modelo foi treinado para identificar produto específico)
 
 ```sql
 CREATE TABLE person_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     person_id UUID NOT NULL, -- Referência a event_persons.person_id
-    photo_id UUID NOT NULL REFERENCES photos_raw(id) ON DELETE CASCADE,
-    item_type VARCHAR(50) NOT NULL CHECK (item_type IN ('brand', 'product')),
-    brand VARCHAR(200), -- Marca detectada (se item_type = 'brand' ou produto tem marca)
-    product_type VARCHAR(50), -- Tipo de produto (se item_type = 'product')
-    normalized_brand VARCHAR(200), -- Marca normalizada
-    confidence_score DECIMAL(5,4) NOT NULL,
-    item_bounding_box JSONB NOT NULL, -- Bounding box do item na foto
-    person_bounding_box JSONB NOT NULL, -- Bounding box da pessoa associada
-    association_confidence DECIMAL(5,4), -- Confiança da associação item-pessoa
-    source_detection_id UUID REFERENCES raw_detections(id),
-    created_at TIMESTAMP DEFAULT NOW()
+    
+    -- SEMPRE PREENCHIDOS
+    product_type VARCHAR(50) NOT NULL CHECK (product_type IN ('tênis', 'camiseta', 'short', 'óculos', 'boné')),
+    brand VARCHAR(200) NOT NULL CHECK (brand IN ('Nike', 'Adidas', 'Mizuno', 'Track&Field', 'Asics', 'Olympikus')),
+    
+    -- OPCIONAL (só se modelo foi treinado para identificar produto específico)
+    product_name VARCHAR(200), -- Nome exato do produto (ex: "Air Zoom Pegasus", "Tênis Corre 4")
+    
+    created_at TIMESTAMP DEFAULT NOW(),
+    
+    -- Constraint: uma pessoa não pode ter o mesmo tipo de produto duplicado no mesmo evento
+    UNIQUE(event_id, person_id, product_type)
 );
 
 CREATE INDEX idx_person_items_event ON person_items(event_id);
 CREATE INDEX idx_person_items_person ON person_items(person_id);
-CREATE INDEX idx_person_items_photo ON person_items(photo_id);
-CREATE INDEX idx_person_items_brand ON person_items(normalized_brand);
+CREATE INDEX idx_person_items_brand ON person_items(brand);
 CREATE INDEX idx_person_items_product ON person_items(product_type);
-CREATE INDEX idx_person_items_type ON person_items(item_type);
+CREATE INDEX idx_person_items_event_brand ON person_items(event_id, brand);
 ```
 
-**Estratégia de Associação Item-Pessoa:**
-1. Detectar pessoas na foto (bounding boxes de pessoas)
-2. Detectar itens na foto (bounding boxes de marcas/produtos)
-3. Associar item à pessoa mais próxima usando cálculo de distância entre bounding boxes
-4. Validar associação: item deve estar dentro ou próximo do bounding box da pessoa
-5. Calcular `association_confidence` baseado na proximidade e sobreposição
+**Marcas Permitidas:**
+- Nike
+- Adidas
+- Mizuno
+- Track&Field
+- Asics
+- Olympikus
 
-**Algoritmo de Associação (Pseudocódigo):**
-```python
-def associate_items_to_persons(photo_id, persons, items):
-    associations = []
-    
-    for item in items:
-        best_person = None
-        best_distance = float('inf')
-        
-        for person in persons:
-            # Calcular distância entre centro do item e centro da pessoa
-            distance = calculate_distance(item.bbox, person.bbox)
-            
-            # Verificar se item está dentro ou próximo da pessoa
-            if is_item_near_person(item.bbox, person.bbox, threshold=50):
-                if distance < best_distance:
-                    best_distance = distance
-                    best_person = person
-        
-        if best_person:
-            association_confidence = calculate_confidence(item.bbox, best_person.bbox)
-            associations.append({
-                'person_id': best_person.id,
-                'item': item,
-                'confidence': association_confidence
-            })
-    
-    return associations
-```
+**Tipos de Produto Permitidos:**
+- tênis
+- camiseta
+- short
+- óculos
+- boné
 
-#### 4.2.7. Tabela: `brand_normalization`
-
-Mapeamento de labels brutos para marcas normalizadas.
-
-```sql
-CREATE TABLE brand_normalization (
-    id SERIAL PRIMARY KEY,
-    detected_label VARCHAR(200) NOT NULL UNIQUE, -- Label da API
-    normalized_brand VARCHAR(200) NOT NULL, -- Marca padronizada
-    confidence_threshold DECIMAL(5,4) DEFAULT 0.6, -- Limiar mínimo
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Exemplos de mapeamento:
--- "nike" -> "Nike"
--- "Nike Inc." -> "Nike"
--- "adidas" -> "Adidas"
--- "ADIDAS" -> "Adidas"
-
-CREATE INDEX idx_brand_norm_label ON brand_normalization(detected_label);
-CREATE INDEX idx_brand_norm_brand ON brand_normalization(normalized_brand);
-```
+**Produtos Específicos Treinados (exemplos):**
+- Nike: "Air Zoom Pegasus" (tênis)
+- Adidas: "Ultraboost 22" (tênis)
+- Mizuno: "Wave Rider" (tênis)
+- Track&Field: "Corre 4" (tênis)
+- Asics: "Gel-Nimbus" (tênis)
+- Olympikus: "Corre 3" (tênis)
 
 **Nota:** A tabela `extracted_items` foi substituída por `person_items`, que já contém a associação pessoa-item. Esta mudança garante que cada item detectado está corretamente associado à pessoa que o está usando.
 
@@ -1373,16 +1339,12 @@ SELECT
     e.id as event_id,
     e.event_name,
     e.event_date,
-    pi.normalized_brand,
+    pi.brand,
     COUNT(DISTINCT pi.person_id) as persons_with_brand, -- Pessoas únicas com a marca
-    COUNT(DISTINCT pi.photo_id) as photos_with_brand,
-    COUNT(DISTINCT pi.id) as total_detections,
-    AVG(pi.confidence_score) as avg_confidence,
-    MIN(pi.confidence_score) as min_confidence,
-    MAX(pi.confidence_score) as max_confidence,
+    COUNT(DISTINCT pi.id) as total_items,
     ROUND(
         100.0 * COUNT(DISTINCT pi.id) / 
-        NULLIF((SELECT COUNT(*) FROM person_items WHERE event_id = e.id AND item_type = 'brand'), 0),
+        NULLIF((SELECT COUNT(*) FROM person_items WHERE event_id = e.id), 0),
         2
     ) as brand_share_percent,
     ROUND(
@@ -1392,12 +1354,12 @@ SELECT
     ) as person_coverage_percent
 FROM events e
 JOIN person_items pi ON pi.event_id = e.id
-WHERE pi.item_type = 'brand' AND pi.normalized_brand IS NOT NULL
-GROUP BY e.id, e.event_name, e.event_date, pi.normalized_brand;
+WHERE pi.brand IS NOT NULL
+GROUP BY e.id, e.event_name, e.event_date, pi.brand;
 
-CREATE UNIQUE INDEX idx_brand_summary_unique ON brand_event_summary(event_id, normalized_brand);
+CREATE UNIQUE INDEX idx_brand_summary_unique ON brand_event_summary(event_id, brand);
 CREATE INDEX idx_brand_summary_event ON brand_event_summary(event_id);
-CREATE INDEX idx_brand_summary_brand ON brand_event_summary(normalized_brand);
+CREATE INDEX idx_brand_summary_brand ON brand_event_summary(brand);
 ```
 
 **Refresh da View:**
@@ -1406,7 +1368,7 @@ CREATE INDEX idx_brand_summary_brand ON brand_event_summary(normalized_brand);
 REFRESH MATERIALIZED VIEW CONCURRENTLY brand_event_summary;
 ```
 
-#### 4.2.9. Tabela: `product_event_summary`
+#### 4.2.8. Tabela: `product_event_summary`
 
 Métricas agregadas por produto e evento. **Atualizada para usar `person_items`.**
 
@@ -1417,23 +1379,21 @@ SELECT
     e.event_name,
     pi.product_type,
     COUNT(DISTINCT pi.person_id) as persons_with_product, -- Pessoas únicas com o produto
-    COUNT(DISTINCT pi.photo_id) as photos_with_product,
-    COUNT(DISTINCT pi.id) as total_detections,
-    AVG(pi.confidence_score) as avg_confidence,
+    COUNT(DISTINCT pi.id) as total_items,
     ROUND(
         100.0 * COUNT(DISTINCT pi.id) / 
-        NULLIF((SELECT COUNT(*) FROM person_items WHERE event_id = e.id AND item_type = 'product'), 0),
+        NULLIF((SELECT COUNT(*) FROM person_items WHERE event_id = e.id), 0),
         2
     ) as product_share_percent
 FROM events e
 JOIN person_items pi ON pi.event_id = e.id
-WHERE pi.item_type = 'product' AND pi.product_type IS NOT NULL
+WHERE pi.product_type IS NOT NULL
 GROUP BY e.id, e.event_name, pi.product_type;
 
 CREATE UNIQUE INDEX idx_product_summary_unique ON product_event_summary(event_id, product_type);
 ```
 
-#### 4.2.10. Tabela: `report_metadata`
+#### 4.2.9. Tabela: `report_metadata`
 
 Metadados dos relatórios gerados.
 
@@ -1471,13 +1431,13 @@ Brand Share (%) = (Detecções da Marca / Total de Detecções) × 100
 **Implementação SQL:**
 ```sql
 SELECT 
-    normalized_brand,
+    brand,
     COUNT(DISTINCT person_id) as persons_count, -- Pessoas únicas
-    COUNT(*) as detections,
+    COUNT(*) as items_count,
     ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 2) as share_percent
 FROM person_items
-WHERE event_id = '...' AND item_type = 'brand'
-GROUP BY normalized_brand
+WHERE event_id = '...'
+GROUP BY brand
 ORDER BY share_percent DESC;
 ```
 
