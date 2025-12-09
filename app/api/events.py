@@ -3,25 +3,35 @@ Rotas de eventos e métricas
 Todas as rotas da API estão aqui (simplificado para MVP)
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from app.api.deps import get_db_service
 from app.services.database import DatabaseService
+from app.core.events import EventsService
 
 router = APIRouter()
 
 
 @router.get("/events")
 async def list_events(
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(100, ge=1, le=1000, description="Número máximo de eventos a retornar"),
+    offset: int = Query(0, ge=0, description="Número de eventos a pular"),
     db: DatabaseService = Depends(get_db_service)
 ):
     """
     Lista todos os eventos com paginação
+    
+    - **limit**: Número máximo de eventos (1-1000, padrão: 100)
+    - **offset**: Número de eventos a pular (padrão: 0)
+    
+    Retorna lista de eventos ordenados por data (mais recentes primeiro)
     """
-    # TODO: Implementar na Task 5
-    return {"message": "Not implemented yet"}
+    try:
+        events_service = EventsService(db)
+        result = events_service.list_events(limit=limit, offset=offset)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar eventos: {str(e)}")
 
 
 @router.get("/events/{event_id}")
@@ -31,9 +41,23 @@ async def get_event(
 ):
     """
     Busca detalhes de um evento específico
+    
+    - **event_id**: UUID do evento
+    
+    Retorna informações completas do evento (nome, data, localização, etc)
     """
-    # TODO: Implementar na Task 6
-    return {"message": "Not implemented yet"}
+    try:
+        events_service = EventsService(db)
+        event = events_service.get_event_details(event_id)
+        
+        if not event:
+            raise HTTPException(status_code=404, detail=f"Evento {event_id} não encontrado")
+        
+        return event
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar evento: {str(e)}")
 
 
 @router.get("/events/{event_id}/brands")
