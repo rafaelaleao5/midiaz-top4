@@ -16,19 +16,37 @@ router = APIRouter()
 async def list_events(
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de eventos a retornar"),
     offset: int = Query(0, ge=0, description="Número de eventos a pular"),
+    sport: Optional[str] = Query(None, description="Filtrar por esporte (corrida, triathlon, ciclismo, vôlei, futebol)"),
+    event_type: Optional[str] = Query(None, description="Filtrar por tipo de evento (prova, treino)"),
+    location: Optional[str] = Query(None, description="Filtrar por localização (busca parcial)"),
+    date_from: Optional[str] = Query(None, description="Data inicial (YYYY-MM-DD)"),
+    date_to: Optional[str] = Query(None, description="Data final (YYYY-MM-DD)"),
     db: DatabaseService = Depends(get_db_service)
 ):
     """
-    Lista todos os eventos com paginação
+    Lista eventos com paginação e filtros
     
     - **limit**: Número máximo de eventos (1-1000, padrão: 100)
     - **offset**: Número de eventos a pular (padrão: 0)
+    - **sport**: Filtrar por esporte
+    - **event_type**: Filtrar por tipo de evento (prova/treino)
+    - **location**: Filtrar por localização (busca parcial)
+    - **date_from**: Data inicial (YYYY-MM-DD)
+    - **date_to**: Data final (YYYY-MM-DD)
     
     Retorna lista de eventos ordenados por data (mais recentes primeiro)
     """
     try:
         events_service = EventsService(db)
-        result = events_service.list_events(limit=limit, offset=offset)
+        result = events_service.list_events(
+            limit=limit, 
+            offset=offset,
+            sport=sport,
+            event_type=event_type,
+            location=location,
+            date_from=date_from,
+            date_to=date_to
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar eventos: {str(e)}")
@@ -122,20 +140,38 @@ async def get_event_products(
 
 @router.get("/metrics/dashboard")
 async def get_dashboard_metrics(
+    sport: Optional[str] = Query(None, description="Filtrar por esporte"),
+    event_type: Optional[str] = Query(None, description="Filtrar por tipo de evento (prova, treino)"),
+    location: Optional[str] = Query(None, description="Filtrar por localização"),
+    date_from: Optional[str] = Query(None, description="Data inicial (YYYY-MM-DD)"),
+    date_to: Optional[str] = Query(None, description="Data final (YYYY-MM-DD)"),
     db: DatabaseService = Depends(get_db_service)
 ):
     """
-    Retorna KPIs agregados para o dashboard
+    Retorna KPIs agregados para o dashboard com filtros
     
-    Retorna métricas gerais do sistema:
+    Retorna métricas filtradas do sistema:
     - total_events: Total de eventos processados
     - total_photos_analyzed: Total de fotos analisadas
     - total_athletes_identified: Total de atletas identificados
     - total_brands_tracked: Total de marcas rastreadas
+    
+    Parâmetros de filtro:
+    - **sport**: Filtrar por esporte
+    - **event_type**: Filtrar por tipo de evento
+    - **location**: Filtrar por localização
+    - **date_from**: Data inicial (YYYY-MM-DD)
+    - **date_to**: Data final (YYYY-MM-DD)
     """
     try:
         events_service = EventsService(db)
-        metrics = events_service.get_dashboard_metrics()
+        metrics = events_service.get_dashboard_metrics(
+            sport=sport,
+            event_type=event_type,
+            location=location,
+            date_from=date_from,
+            date_to=date_to
+        )
         return metrics
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar métricas do dashboard: {str(e)}")
@@ -143,10 +179,16 @@ async def get_dashboard_metrics(
 
 @router.get("/metrics/brands/timeseries")
 async def get_brands_time_series(
+    sport: Optional[str] = Query(None, description="Filtrar por esporte (múltiplos valores separados por vírgula)"),
+    event_type: Optional[str] = Query(None, description="Filtrar por tipo de evento (prova, treino)"),
+    location: Optional[str] = Query(None, description="Filtrar por localização"),
+    date_from: Optional[str] = Query(None, description="Data inicial (YYYY-MM-DD)"),
+    date_to: Optional[str] = Query(None, description="Data final (YYYY-MM-DD)"),
+    brand: Optional[str] = Query(None, description="Filtrar por marca (múltiplos valores separados por vírgula)"),
     db: DatabaseService = Depends(get_db_service)
 ):
     """
-    Retorna dados temporais de marcas agrupados por mês
+    Retorna dados temporais de marcas agrupados por mês com filtros
     
     Retorna lista de objetos com:
     - date: mês no formato abreviado (Jan, Fev, Mar, etc.)
@@ -154,12 +196,24 @@ async def get_brands_time_series(
     - month: número do mês
     - nike, adidas, mizuno, etc.: total de itens detectados por marca
     
-    Usado para alimentar gráficos de linha de presença de marca ao longo do tempo.
+    Parâmetros de filtro:
+    - **sport**: Filtrar por esporte (múltiplos valores separados por vírgula)
+    - **event_type**: Filtrar por tipo de evento
+    - **location**: Filtrar por localização
+    - **date_from**: Data inicial (YYYY-MM-DD)
+    - **date_to**: Data final (YYYY-MM-DD)
+    - **brand**: Filtrar por marca (múltiplos valores separados por vírgula)
     """
     try:
         events_service = EventsService(db)
-        time_series = events_service.get_brand_time_series()
+        time_series = events_service.get_brand_time_series(
+            sport=sport,
+            event_type=event_type,
+            location=location,
+            date_from=date_from,
+            date_to=date_to,
+            brand=brand
+        )
         return {"data": time_series}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar dados temporais de marcas: {str(e)}")
-

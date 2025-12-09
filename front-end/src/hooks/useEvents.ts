@@ -17,15 +17,19 @@ import {
   type ProductSummary,
   type DashboardMetrics,
   type BrandTimeSeriesResponse,
+  type FilterParams,
 } from '@/services/api/events';
 
+// Re-exportar FilterParams para uso nos componentes
+export type { FilterParams };
+
 /**
- * Hook para listar eventos com paginação
+ * Hook para listar eventos com paginação e filtros
  */
-export function useEvents(limit: number = 100, offset: number = 0) {
+export function useEvents(limit: number = 100, offset: number = 0, filters?: FilterParams) {
   return useQuery<EventListResponse, Error>({
-    queryKey: ['events', limit, offset],
-    queryFn: () => getEvents(limit, offset),
+    queryKey: ['events', limit, offset, filters],
+    queryFn: () => getEvents(limit, offset, filters),
     staleTime: 30000, // 30 segundos - dados considerados "frescos"
   });
 }
@@ -67,24 +71,23 @@ export function useEventProducts(eventId: string | null) {
 }
 
 /**
- * Hook para buscar métricas do dashboard
+ * Hook para buscar métricas do dashboard com filtros
  */
-export function useDashboardMetrics() {
+export function useDashboardMetrics(filters?: FilterParams) {
   return useQuery<DashboardMetrics, Error>({
-    queryKey: ['dashboard-metrics'],
-    queryFn: () => getDashboardMetrics(),
+    queryKey: ['dashboard-metrics', filters],
+    queryFn: () => getDashboardMetrics(filters),
     staleTime: 60000, // 1 minuto - métricas mudam menos frequentemente
   });
 }
 
 /**
- * Hook para buscar dados temporais de marcas
+ * Hook para buscar dados temporais de marcas com filtros
  */
-export function useBrandTimeSeries() {
+export function useBrandTimeSeries(filters?: FilterParams) {
   return useQuery<BrandTimeSeriesResponse, Error>({
-    queryKey: ['brand-time-series'],
-    queryFn: () => getBrandTimeSeries(),
+    queryKey: ['brand-time-series', filters],
+    queryFn: () => getBrandTimeSeries(filters),
     staleTime: 60000, // 1 minuto
   });
 }
-

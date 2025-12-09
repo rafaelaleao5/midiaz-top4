@@ -15,13 +15,36 @@ class EventsService:
     def __init__(self, db_service: DatabaseService):
         self.db = db_service
     
-    def list_events(self, limit: int = 100, offset: int = 0) -> Dict[str, Any]:
+    def list_events(
+        self, 
+        limit: int = 100, 
+        offset: int = 0,
+        sport: Optional[str] = None,
+        event_type: Optional[str] = None,
+        location: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Lista eventos com paginação
+        Lista eventos com paginação e filtros
         Retorna eventos ordenados por data (mais recentes primeiro)
         """
-        events = self.db.get_events(limit=limit, offset=offset)
-        total = self.db.count_events()
+        events = self.db.get_events(
+            limit=limit, 
+            offset=offset,
+            sport=sport,
+            event_type=event_type,
+            location=location,
+            date_from=date_from,
+            date_to=date_to
+        )
+        total = self.db.count_events(
+            sport=sport,
+            event_type=event_type,
+            location=location,
+            date_from=date_from,
+            date_to=date_to
+        )
         
         return {
             "events": events,
@@ -55,21 +78,35 @@ class EventsService:
         products = self.db.get_product_summary(event_id)
         return products
     
-    def get_dashboard_metrics(self) -> Dict[str, Any]:
+    def get_dashboard_metrics(
+        self,
+        sport: Optional[str] = None,
+        event_type: Optional[str] = None,
+        location: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Retorna KPIs agregados para o dashboard
-        Calcula métricas gerais do sistema
-        
-        Retorna apenas métricas disponíveis no banco de dados:
-        - total_events
-        - total_photos_analyzed
-        - total_athletes_identified
-        - total_brands_tracked
+        Retorna KPIs agregados para o dashboard com filtros
         """
-        metrics = self.db.get_dashboard_metrics()
+        metrics = self.db.get_dashboard_metrics(
+            sport=sport,
+            event_type=event_type,
+            location=location,
+            date_from=date_from,
+            date_to=date_to
+        )
         return metrics
     
-    def get_brand_time_series(self) -> List[Dict[str, Any]]:
+    def get_brand_time_series(
+        self,
+        sport: Optional[str] = None,
+        event_type: Optional[str] = None,
+        location: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
+        brand: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Retorna dados temporais de marcas agrupados por mês
         
@@ -83,8 +120,15 @@ class EventsService:
             7: "Jul", 8: "Ago", 9: "Set", 10: "Out", 11: "Nov", 12: "Dez"
         }
         
-        # Buscar dados do banco
-        raw_data = self.db.get_brand_time_series()
+        # Buscar dados do banco (com filtros)
+        raw_data = self.db.get_brand_time_series(
+            sport=sport,
+            event_type=event_type,
+            location=location,
+            date_from=date_from,
+            date_to=date_to,
+            brand=brand
+        )
         
         if not raw_data:
             return []
@@ -125,4 +169,3 @@ class EventsService:
             result.append(entry)
         
         return result
-
