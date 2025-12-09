@@ -57,13 +57,33 @@ export interface DashboardMetrics {
 }
 
 /**
- * Lista todos os eventos com paginação
+ * Parâmetros de filtro para queries
+ */
+export interface FilterParams {
+  sport?: string;
+  event_type?: string;
+  location?: string;
+  date_from?: string;
+  date_to?: string;
+}
+
+/**
+ * Lista eventos com paginação e filtros
  */
 export async function getEvents(
   limit: number = 100,
-  offset: number = 0
+  offset: number = 0,
+  filters?: FilterParams
 ): Promise<EventListResponse> {
-  return api.get<EventListResponse>('/api/events', { limit, offset });
+  const params: Record<string, string | number> = { limit, offset };
+  
+  if (filters?.sport) params.sport = filters.sport;
+  if (filters?.event_type) params.event_type = filters.event_type;
+  if (filters?.location) params.location = filters.location;
+  if (filters?.date_from) params.date_from = filters.date_from;
+  if (filters?.date_to) params.date_to = filters.date_to;
+  
+  return api.get<EventListResponse>('/api/events', params);
 }
 
 /**
@@ -96,10 +116,18 @@ export async function getEventProducts(
 }
 
 /**
- * Busca KPIs agregados para o dashboard
+ * Busca KPIs agregados para o dashboard com filtros
  */
-export async function getDashboardMetrics(): Promise<DashboardMetrics> {
-  return api.get<DashboardMetrics>('/api/metrics/dashboard');
+export async function getDashboardMetrics(filters?: FilterParams): Promise<DashboardMetrics> {
+  const params: Record<string, string> = {};
+  
+  if (filters?.sport) params.sport = filters.sport;
+  if (filters?.event_type) params.event_type = filters.event_type;
+  if (filters?.location) params.location = filters.location;
+  if (filters?.date_from) params.date_from = filters.date_from;
+  if (filters?.date_to) params.date_to = filters.date_to;
+  
+  return api.get<DashboardMetrics>('/api/metrics/dashboard', Object.keys(params).length > 0 ? params : undefined);
 }
 
 /**
@@ -123,9 +151,16 @@ export interface BrandTimeSeriesResponse {
 }
 
 /**
- * Busca dados temporais de marcas agrupados por mês
+ * Busca dados temporais de marcas agrupados por mês com filtros
  */
-export async function getBrandTimeSeries(): Promise<BrandTimeSeriesResponse> {
-  return api.get<BrandTimeSeriesResponse>('/api/metrics/brands/timeseries');
+export async function getBrandTimeSeries(filters?: FilterParams): Promise<BrandTimeSeriesResponse> {
+  const params: Record<string, string> = {};
+  
+  if (filters?.sport) params.sport = filters.sport;
+  if (filters?.event_type) params.event_type = filters.event_type;
+  if (filters?.location) params.location = filters.location;
+  if (filters?.date_from) params.date_from = filters.date_from;
+  if (filters?.date_to) params.date_to = filters.date_to;
+  
+  return api.get<BrandTimeSeriesResponse>('/api/metrics/brands/timeseries', Object.keys(params).length > 0 ? params : undefined);
 }
-

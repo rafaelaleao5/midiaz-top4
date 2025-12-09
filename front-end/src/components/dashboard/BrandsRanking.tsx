@@ -1,4 +1,4 @@
-import { useEvents, useEventBrands } from "@/hooks/useEvents";
+import { useEvents, useEventBrands, type FilterParams } from "@/hooks/useEvents";
 import { cn } from "@/lib/utils";
 import type { BrandSummary } from "@/services/api/events";
 import { useMemo } from "react";
@@ -6,8 +6,12 @@ import { useMemo } from "react";
 // Marcas permitidas no banco
 const ALLOWED_BRANDS = ['Nike', 'Adidas', 'Mizuno', 'Track&Field', 'Asics', 'Olympikus'];
 
-export function BrandsRanking() {
-  const { data: eventsData, isLoading: eventsLoading } = useEvents(10, 0);
+interface BrandsRankingProps {
+  filters?: FilterParams;
+}
+
+export function BrandsRanking({ filters }: BrandsRankingProps) {
+  const { data: eventsData, isLoading: eventsLoading } = useEvents(10, 0, filters);
   const events = eventsData?.events || [];
 
   // Buscar marcas de todos os eventos (limitado aos primeiros 5 para performance)

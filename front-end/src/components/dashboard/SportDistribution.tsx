@@ -1,4 +1,4 @@
-import { useEvents } from "@/hooks/useEvents";
+import { useEvents, type FilterParams } from "@/hooks/useEvents";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useMemo } from "react";
 import type { Event } from "@/services/api/events";
@@ -28,8 +28,12 @@ interface SportData {
   events: number;
 }
 
-export function SportDistribution() {
-  const { data: eventsData, isLoading } = useEvents(100, 0);
+interface SportDistributionProps {
+  filters?: FilterParams;
+}
+
+export function SportDistribution({ filters }: SportDistributionProps) {
+  const { data: eventsData, isLoading } = useEvents(100, 0, filters);
   const events = eventsData?.events || [];
 
   // Calcular distribuição de esportes

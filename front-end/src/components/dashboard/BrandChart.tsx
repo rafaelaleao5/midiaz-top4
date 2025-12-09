@@ -1,4 +1,4 @@
-import { useBrandTimeSeries } from "@/hooks/useEvents";
+import { useBrandTimeSeries, type FilterParams } from "@/hooks/useEvents";
 import {
   LineChart,
   Line,
@@ -28,8 +28,12 @@ const brandDisplayNames: Record<string, string> = {
   olympikus: "Olympikus",
 };
 
-export function BrandChart() {
-  const { data, isLoading, error } = useBrandTimeSeries();
+interface BrandChartProps {
+  filters?: FilterParams;
+}
+
+export function BrandChart({ filters }: BrandChartProps) {
+  const { data, isLoading, error } = useBrandTimeSeries(filters);
 
   if (isLoading) {
     return (

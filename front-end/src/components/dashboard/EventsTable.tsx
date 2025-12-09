@@ -1,4 +1,4 @@
-import { useEvents } from "@/hooks/useEvents";
+import { useEvents, type FilterParams } from "@/hooks/useEvents";
 import { Calendar, MapPin, Camera, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Event } from "@/services/api/events";
@@ -22,8 +22,12 @@ const formatSportName = (sport: string): string => {
   return mapping[sport] || sport;
 };
 
-export function EventsTable() {
-  const { data, isLoading, error } = useEvents(10, 0);
+interface EventsTableProps {
+  filters?: FilterParams;
+}
+
+export function EventsTable({ filters }: EventsTableProps) {
+  const { data, isLoading, error } = useEvents(10, 0, filters);
 
   if (isLoading) {
     return (
