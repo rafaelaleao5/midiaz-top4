@@ -104,7 +104,8 @@ class EventsService:
         event_type: Optional[str] = None,
         location: Optional[str] = None,
         date_from: Optional[str] = None,
-        date_to: Optional[str] = None
+        date_to: Optional[str] = None,
+        brand: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Retorna dados temporais de marcas agrupados por mês
@@ -125,7 +126,8 @@ class EventsService:
             event_type=event_type,
             location=location,
             date_from=date_from,
-            date_to=date_to
+            date_to=date_to,
+            brand=brand
         )
         
         if not raw_data:

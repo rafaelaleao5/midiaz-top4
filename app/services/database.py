@@ -31,17 +31,8 @@ class DatabaseService:
         try:
             query = self.client.table("events").select("*")
             
-            # Aplicar filtros
-            if sport:
-                query = query.eq("sport", sport)
-            if event_type:
-                query = query.eq("event_type", event_type)
-            if location:
-                query = query.ilike("event_location", f"%{location}%")
-            if date_from:
-                query = query.gte("event_date", date_from)
-            if date_to:
-                query = query.lte("event_date", date_to)
+            # Aplicar filtros (suporta múltiplos valores separados por vírgula)
+            query = self._apply_event_filters(query, sport, event_type, location, date_from, date_to)
             
             response = (
                 query
@@ -132,13 +123,30 @@ class DatabaseService:
     
     def _apply_event_filters(self, query, sport: Optional[str], event_type: Optional[str], 
                                location: Optional[str], date_from: Optional[str], date_to: Optional[str]):
-        """Aplicar filtros comuns a queries de eventos"""
+        """Aplicar filtros comuns a queries de eventos
+        Suporta múltiplos valores separados por vírgula para sport, event_type e location
+        """
         if sport:
-            query = query.eq("sport", sport)
+            sports = [s.strip() for s in sport.split(",")]
+            if len(sports) > 1:
+                query = query.in_("sport", sports)
+            else:
+                query = query.eq("sport", sports[0])
         if event_type:
-            query = query.eq("event_type", event_type)
+            types = [t.strip() for t in event_type.split(",")]
+            if len(types) > 1:
+                query = query.in_("event_type", types)
+            else:
+                query = query.eq("event_type", types[0])
         if location:
-            query = query.ilike("event_location", f"%{location}%")
+            locations = [l.strip() for l in location.split(",")]
+            if len(locations) > 1:
+                # Para múltiplas localizações, usar OR com ilike
+                # Supabase não suporta múltiplos ilike diretamente, então usamos or_
+                location_filters = ",".join([f"event_location.ilike.%{loc}%" for loc in locations])
+                query = query.or_(location_filters)
+            else:
+                query = query.ilike("event_location", f"%{locations[0]}%")
         if date_from:
             query = query.gte("event_date", date_from)
         if date_to:
@@ -224,12 +232,12 @@ class DatabaseService:
                 )
                 total_athletes = athletes_response.count if hasattr(athletes_response, 'count') else len(athletes_response.data or [])
                 
-                # Marcas únicas
+                # Marcas únicas - usar a view brand_event_summary que já tem marcas agregadas
+                # Isso é mais eficiente que buscar em person_items
                 all_brands = set()
                 brands_response = (
-                    self.client.table("person_items")
+                    self.client.table("brand_event_summary")
                     .select("brand")
-                    .limit(1000)
                     .execute()
                 )
                 for item in (brands_response.data or []):
@@ -260,21 +268,12 @@ class DatabaseService:
         date_from: Optional[str] = None,
         date_to: Optional[str] = None
     ) -> int:
-        """Contar total de eventos com filtros"""
+        """Contar total de eventos com filtros (suporta múltiplos valores separados por vírgula)"""
         try:
             query = self.client.table("events").select("id", count="exact")
             
-            # Aplicar filtros
-            if sport:
-                query = query.eq("sport", sport)
-            if event_type:
-                query = query.eq("event_type", event_type)
-            if location:
-                query = query.ilike("event_location", f"%{location}%")
-            if date_from:
-                query = query.gte("event_date", date_from)
-            if date_to:
-                query = query.lte("event_date", date_to)
+            # Aplicar filtros (suporta múltiplos valores separados por vírgula)
+            query = self._apply_event_filters(query, sport, event_type, location, date_from, date_to)
             
             response = query.execute()
             return response.count if hasattr(response, 'count') else len(response.data or [])
@@ -288,36 +287,43 @@ class DatabaseService:
         event_type: Optional[str] = None,
         location: Optional[str] = None,
         date_from: Optional[str] = None,
-        date_to: Optional[str] = None
+        date_to: Optional[str] = None,
+        brand: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Buscar dados de marcas agregados por evento com data e filtros
         Retorna dados da view brand_event_summary com informações de data
         """
         try:
-            # Se há filtros, primeiro buscar os event_ids filtrados
-            has_filters = any([sport, event_type, location, date_from, date_to])
+            # Se há filtros de evento, primeiro buscar os event_ids filtrados
+            has_event_filters = any([sport, event_type, location, date_from, date_to])
             
-            if has_filters:
+            if has_event_filters:
                 event_ids = self._get_filtered_event_ids(sport, event_type, location, date_from, date_to)
                 if not event_ids:
                     return []
                 
                 # Buscar dados apenas dos eventos filtrados
-                response = (
+                query = (
                     self.client.table("brand_event_summary")
                     .select("event_id, event_name, event_date, brand, total_items")
                     .in_("event_id", event_ids)
-                    .order("event_date", desc=False)
-                    .execute()
                 )
             else:
-                response = (
+                query = (
                     self.client.table("brand_event_summary")
                     .select("event_id, event_name, event_date, brand, total_items")
-                    .order("event_date", desc=False)
-                    .execute()
                 )
+            
+            # Aplicar filtro de marca se fornecido
+            if brand:
+                brands = [b.strip() for b in brand.split(",")]
+                if len(brands) > 1:
+                    query = query.in_("brand", brands)
+                else:
+                    query = query.eq("brand", brands[0])
+            
+            response = query.order("event_date", desc=False).execute()
             
             return response.data or []
         except Exception as e:

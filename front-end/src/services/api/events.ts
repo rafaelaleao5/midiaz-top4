@@ -161,6 +161,7 @@ export async function getBrandTimeSeries(filters?: FilterParams): Promise<BrandT
   if (filters?.location) params.location = filters.location;
   if (filters?.date_from) params.date_from = filters.date_from;
   if (filters?.date_to) params.date_to = filters.date_to;
+  if (filters?.brand) params.brand = filters.brand;
   
   return api.get<BrandTimeSeriesResponse>('/api/metrics/brands/timeseries', Object.keys(params).length > 0 ? params : undefined);
 }

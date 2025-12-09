@@ -18,16 +18,18 @@ const Index = () => {
   const apiFilters: FilterParams = useMemo(() => {
     const result: FilterParams = {};
     
-    // Para filtros de array, usar o primeiro valor ou join com vírgula
-    // Por simplicidade, usando o primeiro valor selecionado
+    // Múltiplos valores são enviados separados por vírgula
     if (filters.sport && filters.sport.length > 0) {
-      result.sport = filters.sport[0];
+      result.sport = filters.sport.join(",");
     }
     if (filters.eventType && filters.eventType.length > 0) {
-      result.event_type = filters.eventType[0];
+      result.event_type = filters.eventType.join(",");
     }
     if (filters.location && filters.location.length > 0) {
-      result.location = filters.location[0];
+      result.location = filters.location.join(",");
+    }
+    if (filters.brand && filters.brand.length > 0) {
+      result.brand = filters.brand.join(",");
     }
     if (filters.dateFrom) {
       result.date_from = filters.dateFrom;

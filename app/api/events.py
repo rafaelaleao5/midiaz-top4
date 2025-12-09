@@ -179,11 +179,12 @@ async def get_dashboard_metrics(
 
 @router.get("/metrics/brands/timeseries")
 async def get_brands_time_series(
-    sport: Optional[str] = Query(None, description="Filtrar por esporte"),
+    sport: Optional[str] = Query(None, description="Filtrar por esporte (múltiplos valores separados por vírgula)"),
     event_type: Optional[str] = Query(None, description="Filtrar por tipo de evento (prova, treino)"),
     location: Optional[str] = Query(None, description="Filtrar por localização"),
     date_from: Optional[str] = Query(None, description="Data inicial (YYYY-MM-DD)"),
     date_to: Optional[str] = Query(None, description="Data final (YYYY-MM-DD)"),
+    brand: Optional[str] = Query(None, description="Filtrar por marca (múltiplos valores separados por vírgula)"),
     db: DatabaseService = Depends(get_db_service)
 ):
     """
@@ -196,11 +197,12 @@ async def get_brands_time_series(
     - nike, adidas, mizuno, etc.: total de itens detectados por marca
     
     Parâmetros de filtro:
-    - **sport**: Filtrar por esporte
+    - **sport**: Filtrar por esporte (múltiplos valores separados por vírgula)
     - **event_type**: Filtrar por tipo de evento
     - **location**: Filtrar por localização
     - **date_from**: Data inicial (YYYY-MM-DD)
     - **date_to**: Data final (YYYY-MM-DD)
+    - **brand**: Filtrar por marca (múltiplos valores separados por vírgula)
     """
     try:
         events_service = EventsService(db)
@@ -209,7 +211,8 @@ async def get_brands_time_series(
             event_type=event_type,
             location=location,
             date_from=date_from,
-            date_to=date_to
+            date_to=date_to,
+            brand=brand
         )
         return {"data": time_series}
     except Exception as e:

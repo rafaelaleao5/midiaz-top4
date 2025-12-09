@@ -160,16 +160,63 @@ export function DashboardFiltersComponent({ filters, onFiltersChange }: Dashboar
 
   return (
     <div className="rounded-lg border border-border bg-card p-3 animate-fade-in">
-      <div className="flex items-center justify-between mb-3">
+      {/* Tudo em uma linha: título, filtros e botões */}
+      <div className="flex items-center gap-4 flex-wrap">
+        {/* Título */}
         <div className="flex items-center gap-2">
           <Filter className="h-3.5 w-3.5 text-muted-foreground" />
           <h3 className="text-xs font-semibold text-foreground">Filtros</h3>
           {activeFiltersCount > 0 && (
-            <Badge variant="secondary" className="ml-1 text-xs h-5 px-1.5">
+            <Badge variant="secondary" className="text-xs h-5 px-1.5">
               {activeFiltersCount}
             </Badge>
           )}
         </div>
+
+        {/* Filtros - espalhados horizontalmente */}
+        <div className="flex items-center gap-4 flex-1">
+          <div className="flex-1 min-w-[140px] max-w-[200px]">
+            <MultiSelectFilter
+              label="Esporte"
+              options={SPORTS}
+              selectedValues={filters.sport || []}
+              onSelectionChange={(values) => updateArrayFilter("sport", values)}
+              placeholder="Todos os esportes"
+            />
+          </div>
+
+          <div className="flex-1 min-w-[120px] max-w-[160px]">
+            <MultiSelectFilter
+              label="Tipo"
+              options={EVENT_TYPES}
+              selectedValues={filters.eventType || []}
+              onSelectionChange={(values) => updateArrayFilter("eventType", values)}
+              placeholder="Todos os tipos"
+            />
+          </div>
+
+          <div className="flex-1 min-w-[140px] max-w-[180px]">
+            <MultiSelectFilter
+              label="Marca"
+              options={BRANDS}
+              selectedValues={filters.brand || []}
+              onSelectionChange={(values) => updateArrayFilter("brand", values)}
+              placeholder="Todas as marcas"
+            />
+          </div>
+
+          <div className="flex-1 min-w-[160px] max-w-[220px]">
+            <MultiSelectFilter
+              label="Local"
+              options={LOCATIONS}
+              selectedValues={filters.location || []}
+              onSelectionChange={(values) => updateArrayFilter("location", values)}
+              placeholder="Todas as localizações"
+            />
+          </div>
+        </div>
+
+        {/* Botões */}
         <div className="flex items-center gap-1">
           {activeFiltersCount > 0 && (
             <Button
@@ -190,113 +237,6 @@ export function DashboardFiltersComponent({ filters, onFiltersChange }: Dashboar
             {isExpanded ? "▼" : "▶"}
           </Button>
         </div>
-      </div>
-
-      {/* Filtros sempre visíveis */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
-        <MultiSelectFilter
-          label="Esporte"
-          options={SPORTS}
-          selectedValues={filters.sport || []}
-          onSelectionChange={(values) => updateArrayFilter("sport", values)}
-          placeholder="Todos os esportes"
-        />
-        {filters.sport && filters.sport.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-0.5">
-            {filters.sport.map((sport) => (
-              <Badge
-                key={sport}
-                variant="secondary"
-                className="cursor-pointer text-xs h-4 px-1"
-                onClick={() => {
-                  const newValues = filters.sport?.filter((s) => s !== sport) || [];
-                  updateArrayFilter("sport", newValues);
-                }}
-              >
-                {SPORTS.find((s) => s.value === sport)?.label}
-                <X className="h-2.5 w-2.5 ml-0.5" />
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        <MultiSelectFilter
-          label="Tipo"
-          options={EVENT_TYPES}
-          selectedValues={filters.eventType || []}
-          onSelectionChange={(values) => updateArrayFilter("eventType", values)}
-          placeholder="Todos os tipos"
-        />
-        {filters.eventType && filters.eventType.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-0.5">
-            {filters.eventType.map((type) => (
-              <Badge
-                key={type}
-                variant="secondary"
-                className="cursor-pointer text-xs h-4 px-1"
-                onClick={() => {
-                  const newValues = filters.eventType?.filter((t) => t !== type) || [];
-                  updateArrayFilter("eventType", newValues);
-                }}
-              >
-                {EVENT_TYPES.find((t) => t.value === type)?.label}
-                <X className="h-2.5 w-2.5 ml-0.5" />
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        <MultiSelectFilter
-          label="Marca"
-          options={BRANDS}
-          selectedValues={filters.brand || []}
-          onSelectionChange={(values) => updateArrayFilter("brand", values)}
-          placeholder="Todas as marcas"
-        />
-        {filters.brand && filters.brand.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-0.5">
-            {filters.brand.map((brand) => (
-              <Badge
-                key={brand}
-                variant="secondary"
-                className="cursor-pointer text-xs h-4 px-1"
-                onClick={() => {
-                  const newValues = filters.brand?.filter((b) => b !== brand) || [];
-                  updateArrayFilter("brand", newValues);
-                }}
-              >
-                {brand}
-                <X className="h-2.5 w-2.5 ml-0.5" />
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        <MultiSelectFilter
-          label="Local"
-          options={LOCATIONS}
-          selectedValues={filters.location || []}
-          onSelectionChange={(values) => updateArrayFilter("location", values)}
-          placeholder="Todas as localizações"
-        />
-        {filters.location && filters.location.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-0.5">
-            {filters.location.map((loc) => (
-              <Badge
-                key={loc}
-                variant="secondary"
-                className="cursor-pointer text-xs h-4 px-1"
-                onClick={() => {
-                  const newValues = filters.location?.filter((l) => l !== loc) || [];
-                  updateArrayFilter("location", newValues);
-                }}
-              >
-                {LOCATIONS.find((l) => l.value === loc)?.label || loc}
-                <X className="h-2.5 w-2.5 ml-0.5" />
-              </Badge>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Filtros expandidos (datas) */}
