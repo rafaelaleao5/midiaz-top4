@@ -57,7 +57,7 @@ front-end/             # Frontend React
 - **Error Handling**: Tratar erros adequadamente, não silenciar exceções
 
 ### 3. Banco de Dados
-- **Schema**: O schema está definido em `docs/context/database_schema_and_seed.sql`
+- **Schema**: O schema está definido em `docs/context/script_database/database_schema_and_seed.sql`
 - **Estrutura Atual**:
   - `events`: Eventos esportivos (event_type: 'prova' ou 'treino', sport: 'corrida', 'triathlon', 'ciclismo', 'vôlei', 'futebol')
   - `event_persons`: Pessoas por evento (1 registro por pessoa por evento)
@@ -142,11 +142,10 @@ front-end/             # Frontend React
 
 ## 🔍 Quando em Dúvida
 
-1. **Arquitetura**: Consultar `docs/context/event_brand_report_technical_plan.md` (se ainda existir)
-2. **Schema do Banco**: Consultar `docs/context/database_schema_and_seed.sql`
-3. **Decisões Técnicas**: Preferir soluções simples e testáveis
-4. **Novas Features**: Sempre questionar se é necessário no MVP
-5. **Dúvidas**: Perguntar antes de implementar mudanças grandes
+1. **Schema do Banco**: Consultar `docs/context/script_database/database_schema_and_seed.sql`
+2. **Decisões Técnicas**: Preferir soluções simples e testáveis
+3. **Novas Features**: Sempre questionar se é necessário no MVP
+4. **Dúvidas**: Perguntar antes de implementar mudanças grandes
 
 ---
 
