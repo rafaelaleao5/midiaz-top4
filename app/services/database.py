@@ -17,12 +17,34 @@ class DatabaseService:
             settings.SUPABASE_ANON_KEY
         )
     
-    def get_events(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
-        """Buscar todos os eventos com paginação"""
+    def get_events(
+        self, 
+        limit: int = 100, 
+        offset: int = 0,
+        sport: Optional[str] = None,
+        event_type: Optional[str] = None,
+        location: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Buscar eventos com paginação e filtros"""
         try:
+            query = self.client.table("events").select("*")
+            
+            # Aplicar filtros
+            if sport:
+                query = query.eq("sport", sport)
+            if event_type:
+                query = query.eq("event_type", event_type)
+            if location:
+                query = query.ilike("event_location", f"%{location}%")
+            if date_from:
+                query = query.gte("event_date", date_from)
+            if date_to:
+                query = query.lte("event_date", date_to)
+            
             response = (
-                self.client.table("events")
-                .select("*")
+                query
                 .order("event_date", desc=True)
                 .limit(limit)
                 .offset(offset)
@@ -108,93 +130,112 @@ class DatabaseService:
             print(f"Erro ao buscar itens do evento {event_id}: {e}")
             return []
     
-    def get_dashboard_metrics(self) -> Dict[str, Any]:
+    def _apply_event_filters(self, query, sport: Optional[str], event_type: Optional[str], 
+                               location: Optional[str], date_from: Optional[str], date_to: Optional[str]):
+        """Aplicar filtros comuns a queries de eventos"""
+        if sport:
+            query = query.eq("sport", sport)
+        if event_type:
+            query = query.eq("event_type", event_type)
+        if location:
+            query = query.ilike("event_location", f"%{location}%")
+        if date_from:
+            query = query.gte("event_date", date_from)
+        if date_to:
+            query = query.lte("event_date", date_to)
+        return query
+    
+    def _get_filtered_event_ids(self, sport: Optional[str] = None, event_type: Optional[str] = None,
+                                 location: Optional[str] = None, date_from: Optional[str] = None,
+                                 date_to: Optional[str] = None) -> List[str]:
+        """Buscar IDs de eventos que correspondem aos filtros"""
+        query = self.client.table("events").select("id")
+        query = self._apply_event_filters(query, sport, event_type, location, date_from, date_to)
+        response = query.execute()
+        return [e["id"] for e in (response.data or [])]
+    
+    def get_dashboard_metrics(
+        self,
+        sport: Optional[str] = None,
+        event_type: Optional[str] = None,
+        location: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Buscar KPIs agregados para o dashboard
-        Retorna métricas gerais do sistema
+        Buscar KPIs agregados para o dashboard com filtros
+        Retorna métricas filtradas do sistema
         """
         try:
-            # Total de eventos
-            events_response = (
-                self.client.table("events")
-                .select("id", count="exact")
-                .execute()
-            )
+            has_filters = any([sport, event_type, location, date_from, date_to])
+            
+            # Total de eventos (com filtros)
+            events_query = self.client.table("events").select("id, total_photos", count="exact")
+            events_query = self._apply_event_filters(events_query, sport, event_type, location, date_from, date_to)
+            events_response = events_query.execute()
+            
             total_events = events_response.count if hasattr(events_response, 'count') else len(events_response.data or [])
+            total_photos = sum(event.get("total_photos", 0) or 0 for event in (events_response.data or []))
             
-            # Total de fotos analisadas (soma de total_photos de todos os eventos)
-            events_data = (
-                self.client.table("events")
-                .select("total_photos")
-                .execute()
-            )
-            total_photos = sum(event.get("total_photos", 0) or 0 for event in (events_data.data or []))
-            
-            # Total de atletas identificados (contagem direta de event_persons)
-            # Usar contagem direta para garantir precisão
-            athletes_response = (
-                self.client.table("event_persons")
-                .select("person_id", count="exact")
-                .execute()
-            )
-            total_athletes = athletes_response.count if hasattr(athletes_response, 'count') else len(set(
-                person.get("person_id") 
-                for person in (athletes_response.data or []) 
-                if person.get("person_id")
-            ))
-            
-            # Total de marcas rastreadas (marcas únicas em person_items)
-            # Buscar todas as marcas com paginação (Supabase limita a 1000 por padrão)
-            all_brands = set()
-            page_size = 1000
-            offset = 0
-            page_num = 0
-            
-            while True:
+            # Se há filtros, precisamos filtrar atletas e marcas pelos event_ids
+            if has_filters:
+                event_ids = [e["id"] for e in (events_response.data or [])]
+                
+                if not event_ids:
+                    return {
+                        "total_events": 0,
+                        "total_photos_analyzed": 0,
+                        "total_athletes_identified": 0,
+                        "total_brands_tracked": 0,
+                    }
+                
+                # Total de atletas nos eventos filtrados
+                total_athletes = 0
+                all_brands = set()
+                
+                for event_id in event_ids:
+                    # Contar atletas por evento
+                    athletes_resp = (
+                        self.client.table("event_persons")
+                        .select("person_id", count="exact")
+                        .eq("event_id", event_id)
+                        .execute()
+                    )
+                    total_athletes += athletes_resp.count if hasattr(athletes_resp, 'count') else len(athletes_resp.data or [])
+                    
+                    # Buscar marcas por evento
+                    brands_resp = (
+                        self.client.table("person_items")
+                        .select("brand")
+                        .eq("event_id", event_id)
+                        .execute()
+                    )
+                    for item in (brands_resp.data or []):
+                        if item.get("brand"):
+                            all_brands.add(item["brand"])
+                
+                unique_brands = len(all_brands)
+            else:
+                # Sem filtros - buscar todos
+                athletes_response = (
+                    self.client.table("event_persons")
+                    .select("person_id", count="exact")
+                    .execute()
+                )
+                total_athletes = athletes_response.count if hasattr(athletes_response, 'count') else len(athletes_response.data or [])
+                
+                # Marcas únicas
+                all_brands = set()
                 brands_response = (
                     self.client.table("person_items")
                     .select("brand")
-                    .range(offset, offset + page_size - 1)
+                    .limit(1000)
                     .execute()
                 )
-                
-                if not brands_response.data or len(brands_response.data) == 0:
-                    break
-                
-                page_num += 1
-                page_brands = set()
-                
-                # Adicionar marcas desta página
-                for item in brands_response.data:
-                    brand = item.get("brand")
-                    if brand:
-                        all_brands.add(brand)
-                        page_brands.add(brand)
-                
-                # Se retornou menos que page_size, verificar se há mais dados
-                if len(brands_response.data) < page_size:
-                    # Tentar buscar próxima página para confirmar que não há mais dados
-                    offset += page_size
-                    try:
-                        next_response = (
-                            self.client.table("person_items")
-                            .select("brand")
-                            .range(offset, offset + 1)
-                            .execute()
-                        )
-                        if not next_response.data or len(next_response.data) == 0:
-                            break
-                    except Exception as e:
-                        break
-                else:
-                    # Retornou page_size registros, definitivamente há mais dados
-                    offset += page_size
-                
-                # Limite de segurança para evitar loop infinito
-                if offset > 100000:
-                    break
-            
-            unique_brands = len(all_brands)
+                for item in (brands_response.data or []):
+                    if item.get("brand"):
+                        all_brands.add(item["brand"])
+                unique_brands = len(all_brands)
             
             return {
                 "total_events": total_events,
@@ -211,31 +252,73 @@ class DatabaseService:
                 "total_brands_tracked": 0,
             }
     
-    def count_events(self) -> int:
-        """Contar total de eventos"""
+    def count_events(
+        self,
+        sport: Optional[str] = None,
+        event_type: Optional[str] = None,
+        location: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None
+    ) -> int:
+        """Contar total de eventos com filtros"""
         try:
-            response = (
-                self.client.table("events")
-                .select("id", count="exact")
-                .execute()
-            )
+            query = self.client.table("events").select("id", count="exact")
+            
+            # Aplicar filtros
+            if sport:
+                query = query.eq("sport", sport)
+            if event_type:
+                query = query.eq("event_type", event_type)
+            if location:
+                query = query.ilike("event_location", f"%{location}%")
+            if date_from:
+                query = query.gte("event_date", date_from)
+            if date_to:
+                query = query.lte("event_date", date_to)
+            
+            response = query.execute()
             return response.count if hasattr(response, 'count') else len(response.data or [])
         except Exception as e:
             print(f"Erro ao contar eventos: {e}")
             return 0
     
-    def get_brand_time_series(self) -> List[Dict[str, Any]]:
+    def get_brand_time_series(
+        self,
+        sport: Optional[str] = None,
+        event_type: Optional[str] = None,
+        location: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
-        Buscar dados de marcas agregados por evento com data
+        Buscar dados de marcas agregados por evento com data e filtros
         Retorna dados da view brand_event_summary com informações de data
         """
         try:
-            response = (
-                self.client.table("brand_event_summary")
-                .select("event_id, event_name, event_date, brand, total_items")
-                .order("event_date", desc=False)
-                .execute()
-            )
+            # Se há filtros, primeiro buscar os event_ids filtrados
+            has_filters = any([sport, event_type, location, date_from, date_to])
+            
+            if has_filters:
+                event_ids = self._get_filtered_event_ids(sport, event_type, location, date_from, date_to)
+                if not event_ids:
+                    return []
+                
+                # Buscar dados apenas dos eventos filtrados
+                response = (
+                    self.client.table("brand_event_summary")
+                    .select("event_id, event_name, event_date, brand, total_items")
+                    .in_("event_id", event_ids)
+                    .order("event_date", desc=False)
+                    .execute()
+                )
+            else:
+                response = (
+                    self.client.table("brand_event_summary")
+                    .select("event_id, event_name, event_date, brand, total_items")
+                    .order("event_date", desc=False)
+                    .execute()
+                )
+            
             return response.data or []
         except Exception as e:
             print(f"Erro ao buscar dados temporais de marcas: {e}")
