@@ -98,6 +98,12 @@ front-end/             # Frontend React
 - **Scripts Permanentes**: Apenas scripts que serão usados regularmente devem ser mantidos (ex: scripts de deploy, migração, etc)
 - **Pasta scripts/**: Manter limpa, remover scripts obsoletos periodicamente
 
+### 10. Execução de Comandos
+- **NUNCA executar comandos no terminal automaticamente** - sempre sugerir o comando mas aguardar confirmação do usuário
+- **Sugerir primeiro**: Apresentar o comando proposto e explicar o que ele faz
+- **Executar apenas após aprovação**: Só executar quando o usuário explicitamente aprovar/clicar para rodar
+- **Justificar comandos**: Sempre explicar o propósito do comando antes de sugerir
+
 ---
 
 ## 🚫 O Que NÃO Fazer
@@ -111,6 +117,7 @@ front-end/             # Frontend React
 7. **NÃO fazer queries SQL diretas** - usar Supabase Client
 8. **NÃO criar código sem propósito claro** - sempre questionar necessidade
 9. **NÃO deixar scripts temporários no repositório** - remover após uso
+10. **NÃO executar comandos no terminal automaticamente** - sempre sugerir e aguardar aprovação
 
 ---
 
