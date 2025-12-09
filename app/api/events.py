@@ -126,7 +126,19 @@ async def get_dashboard_metrics(
 ):
     """
     Retorna KPIs agregados para o dashboard
+    
+    Retorna métricas gerais do sistema:
+    - total_events: Total de eventos processados
+    - total_photos_analyzed: Total de fotos analisadas
+    - total_athletes_identified: Total de atletas identificados
+    - total_brands_tracked: Total de marcas rastreadas
+    - avg_accuracy: Precisão média do modelo
+    - avg_processing_time: Tempo médio de processamento
     """
-    # TODO: Implementar na Task 9
-    return {"message": "Not implemented yet"}
+    try:
+        events_service = EventsService(db)
+        metrics = events_service.get_dashboard_metrics()
+        return metrics
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar métricas do dashboard: {str(e)}")
 
