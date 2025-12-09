@@ -14,9 +14,10 @@ const COLORS = [
 const formatSportName = (sport: string): string => {
   const mapping: Record<string, string> = {
     corrida: "Corrida",
-    triatlo: "Triathlon",
+    triathlon: "Triathlon",
     ciclismo: "Ciclismo",
-    "beach tennis": "Beach Tennis",
+    vôlei: "Vôlei",
+    futebol: "Futebol",
   };
   return mapping[sport] || sport;
 };
@@ -35,10 +36,10 @@ export function SportDistribution() {
   const sportDistribution = useMemo(() => {
     if (events.length === 0) return [];
 
-    // Contar eventos por tipo
+    // Contar eventos por esporte
     const sportCount: Record<string, number> = {};
     events.forEach((event: Event) => {
-      const sportType = event.event_type;
+      const sportType = event.sport;
       sportCount[sportType] = (sportCount[sportType] || 0) + 1;
     });
 

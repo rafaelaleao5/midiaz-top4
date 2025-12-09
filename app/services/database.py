@@ -130,23 +130,71 @@ class DatabaseService:
             )
             total_photos = sum(event.get("total_photos", 0) or 0 for event in (events_data.data or []))
             
-            # Total de atletas identificados (soma de total_athletes_estimated)
-            total_athletes = sum(
-                event.get("total_athletes_estimated", 0) or 0 
-                for event in (events_data.data or [])
-            )
-            
-            # Total de marcas rastreadas (marcas únicas em person_items)
-            brands_response = (
-                self.client.table("person_items")
-                .select("brand")
+            # Total de atletas identificados (contagem direta de event_persons)
+            # Usar contagem direta para garantir precisão
+            athletes_response = (
+                self.client.table("event_persons")
+                .select("person_id", count="exact")
                 .execute()
             )
-            unique_brands = len(set(
-                item.get("brand") 
-                for item in (brands_response.data or []) 
-                if item.get("brand")
+            total_athletes = athletes_response.count if hasattr(athletes_response, 'count') else len(set(
+                person.get("person_id") 
+                for person in (athletes_response.data or []) 
+                if person.get("person_id")
             ))
+            
+            # Total de marcas rastreadas (marcas únicas em person_items)
+            # Buscar todas as marcas com paginação (Supabase limita a 1000 por padrão)
+            all_brands = set()
+            page_size = 1000
+            offset = 0
+            page_num = 0
+            
+            while True:
+                brands_response = (
+                    self.client.table("person_items")
+                    .select("brand")
+                    .range(offset, offset + page_size - 1)
+                    .execute()
+                )
+                
+                if not brands_response.data or len(brands_response.data) == 0:
+                    break
+                
+                page_num += 1
+                page_brands = set()
+                
+                # Adicionar marcas desta página
+                for item in brands_response.data:
+                    brand = item.get("brand")
+                    if brand:
+                        all_brands.add(brand)
+                        page_brands.add(brand)
+                
+                # Se retornou menos que page_size, verificar se há mais dados
+                if len(brands_response.data) < page_size:
+                    # Tentar buscar próxima página para confirmar que não há mais dados
+                    offset += page_size
+                    try:
+                        next_response = (
+                            self.client.table("person_items")
+                            .select("brand")
+                            .range(offset, offset + 1)
+                            .execute()
+                        )
+                        if not next_response.data or len(next_response.data) == 0:
+                            break
+                    except Exception as e:
+                        break
+                else:
+                    # Retornou page_size registros, definitivamente há mais dados
+                    offset += page_size
+                
+                # Limite de segurança para evitar loop infinito
+                if offset > 100000:
+                    break
+            
+            unique_brands = len(all_brands)
             
             return {
                 "total_events": total_events,
