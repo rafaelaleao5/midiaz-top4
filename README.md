@@ -30,7 +30,7 @@ A **Midiaz** é uma startup que nasceu como marketplace de fotos profissionais e
 ### 1. Configurar Supabase
 
 1. Crie um projeto no [Supabase](https://supabase.com)
-2. Execute o script SQL: `docs/context/database_schema_and_seed.sql`
+2. Execute o script SQL: `docs/context/script_database/database_schema_and_seed.sql`
 3. Configure as credenciais no arquivo `.env`:
    ```
    SUPABASE_URL=your_supabase_url
@@ -122,7 +122,7 @@ O banco está configurado no **Supabase** (PostgreSQL) e já vem populado com:
 - `brand_event_summary`: View materializada com métricas de marcas por evento
 - `product_event_summary`: View materializada com métricas de produtos por evento
 
-O schema completo está em `docs/context/database_schema_and_seed.sql`.
+O schema completo está em `docs/context/script_database/database_schema_and_seed.sql`.
 
 ---
 
@@ -150,6 +150,7 @@ O schema completo está em `docs/context/database_schema_and_seed.sql`.
 
 ### Métricas
 - `GET /api/metrics/dashboard` - KPIs agregados para o dashboard
+- `GET /api/metrics/brands/timeseries` - Dados temporais de marcas por mês
 
 Documentação completa: `http://localhost:8000/docs`
 
@@ -299,7 +300,7 @@ Instruções:
 ## 📚 Documentação Adicional
 
 - **CONTEXT.md**: Contexto do projeto e diretrizes para desenvolvimento (destinado ao Cursor AI e desenvolvedores)
-- **docs/context/database_schema_and_seed.sql**: Schema completo do banco de dados
+- **docs/context/script_database/database_schema_and_seed.sql**: Schema completo do banco de dados
 - **docs/context/arquivos_originais/**: Arquivos originais do projeto (.docx, .pdf)
 
 ---
