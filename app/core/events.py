@@ -4,6 +4,8 @@ Camada que orquestra serviços e aplica regras de negócio
 """
 
 from typing import List, Dict, Any, Optional
+from collections import defaultdict
+from datetime import datetime
 from app.services.database import DatabaseService
 
 
@@ -66,4 +68,61 @@ class EventsService:
         """
         metrics = self.db.get_dashboard_metrics()
         return metrics
+    
+    def get_brand_time_series(self) -> List[Dict[str, Any]]:
+        """
+        Retorna dados temporais de marcas agrupados por mês
+        
+        Retorna lista de objetos com:
+        - date: mês no formato "Jan", "Fev", etc.
+        - nike, adidas, mizuno, etc.: total de itens por marca
+        """
+        # Mapeamento de mês para nome abreviado em português
+        month_names = {
+            1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr", 5: "Mai", 6: "Jun",
+            7: "Jul", 8: "Ago", 9: "Set", 10: "Out", 11: "Nov", 12: "Dez"
+        }
+        
+        # Buscar dados do banco
+        raw_data = self.db.get_brand_time_series()
+        
+        if not raw_data:
+            return []
+        
+        # Agrupar por mês e marca
+        # Estrutura: {(ano, mês): {marca: total_items}}
+        monthly_data: Dict[tuple, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        
+        for item in raw_data:
+            event_date = item.get("event_date")
+            brand = item.get("brand")
+            total_items = item.get("total_items", 0)
+            
+            if not event_date or not brand:
+                continue
+            
+            # Parsear a data (formato: YYYY-MM-DD)
+            try:
+                date_obj = datetime.strptime(event_date, "%Y-%m-%d")
+                year_month = (date_obj.year, date_obj.month)
+                # Normalizar nome da marca para minúsculo
+                brand_key = brand.lower().replace("&", "")
+                monthly_data[year_month][brand_key] += total_items
+            except (ValueError, TypeError):
+                continue
+        
+        # Converter para formato de saída
+        result = []
+        for (year, month) in sorted(monthly_data.keys()):
+            entry = {
+                "date": month_names.get(month, str(month)),
+                "year": year,
+                "month": month,
+            }
+            # Adicionar dados de cada marca
+            for brand, total in monthly_data[(year, month)].items():
+                entry[brand] = total
+            result.append(entry)
+        
+        return result
 

@@ -132,8 +132,6 @@ async def get_dashboard_metrics(
     - total_photos_analyzed: Total de fotos analisadas
     - total_athletes_identified: Total de atletas identificados
     - total_brands_tracked: Total de marcas rastreadas
-    - avg_accuracy: Precisão média do modelo
-    - avg_processing_time: Tempo médio de processamento
     """
     try:
         events_service = EventsService(db)
@@ -141,4 +139,27 @@ async def get_dashboard_metrics(
         return metrics
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar métricas do dashboard: {str(e)}")
+
+
+@router.get("/metrics/brands/timeseries")
+async def get_brands_time_series(
+    db: DatabaseService = Depends(get_db_service)
+):
+    """
+    Retorna dados temporais de marcas agrupados por mês
+    
+    Retorna lista de objetos com:
+    - date: mês no formato abreviado (Jan, Fev, Mar, etc.)
+    - year: ano
+    - month: número do mês
+    - nike, adidas, mizuno, etc.: total de itens detectados por marca
+    
+    Usado para alimentar gráficos de linha de presença de marca ao longo do tempo.
+    """
+    try:
+        events_service = EventsService(db)
+        time_series = events_service.get_brand_time_series()
+        return {"data": time_series}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar dados temporais de marcas: {str(e)}")
 

@@ -223,6 +223,23 @@ class DatabaseService:
         except Exception as e:
             print(f"Erro ao contar eventos: {e}")
             return 0
+    
+    def get_brand_time_series(self) -> List[Dict[str, Any]]:
+        """
+        Buscar dados de marcas agregados por evento com data
+        Retorna dados da view brand_event_summary com informações de data
+        """
+        try:
+            response = (
+                self.client.table("brand_event_summary")
+                .select("event_id, event_name, event_date, brand, total_items")
+                .order("event_date", desc=False)
+                .execute()
+            )
+            return response.data or []
+        except Exception as e:
+            print(f"Erro ao buscar dados temporais de marcas: {e}")
+            return []
 
 
 # Instância global do serviço
