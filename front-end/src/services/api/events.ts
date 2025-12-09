@@ -102,3 +102,30 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   return api.get<DashboardMetrics>('/api/metrics/dashboard');
 }
 
+/**
+ * Dados temporais de marcas por mês
+ */
+export interface BrandTimeSeriesEntry {
+  date: string;
+  year: number;
+  month: number;
+  nike?: number;
+  adidas?: number;
+  mizuno?: number;
+  trackfield?: number;
+  asics?: number;
+  olympikus?: number;
+  [key: string]: string | number | undefined;
+}
+
+export interface BrandTimeSeriesResponse {
+  data: BrandTimeSeriesEntry[];
+}
+
+/**
+ * Busca dados temporais de marcas agrupados por mês
+ */
+export async function getBrandTimeSeries(): Promise<BrandTimeSeriesResponse> {
+  return api.get<BrandTimeSeriesResponse>('/api/metrics/brands/timeseries');
+}
+

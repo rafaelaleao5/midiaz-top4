@@ -10,11 +10,13 @@ import {
   getEventBrands,
   getEventProducts,
   getDashboardMetrics,
+  getBrandTimeSeries,
   type Event,
   type EventListResponse,
   type BrandSummary,
   type ProductSummary,
   type DashboardMetrics,
+  type BrandTimeSeriesResponse,
 } from '@/services/api/events';
 
 /**
@@ -72,6 +74,17 @@ export function useDashboardMetrics() {
     queryKey: ['dashboard-metrics'],
     queryFn: () => getDashboardMetrics(),
     staleTime: 60000, // 1 minuto - métricas mudam menos frequentemente
+  });
+}
+
+/**
+ * Hook para buscar dados temporais de marcas
+ */
+export function useBrandTimeSeries() {
+  return useQuery<BrandTimeSeriesResponse, Error>({
+    queryKey: ['brand-time-series'],
+    queryFn: () => getBrandTimeSeries(),
+    staleTime: 60000, // 1 minuto
   });
 }
 
