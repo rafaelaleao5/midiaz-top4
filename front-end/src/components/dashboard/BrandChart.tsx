@@ -1,4 +1,4 @@
-import { mockTimeSeriesData } from "@/data/mockData";
+import { useBrandTimeSeries, type FilterParams } from "@/hooks/useEvents";
 import {
   LineChart,
   Line,
@@ -10,14 +10,86 @@ import {
   Legend,
 } from "recharts";
 
-const brandColors = {
+const brandColors: Record<string, string> = {
   nike: "hsl(187, 100%, 50%)",
   adidas: "hsl(262, 83%, 58%)",
   asics: "hsl(142, 76%, 36%)",
   mizuno: "hsl(38, 92%, 50%)",
+  trackfield: "hsl(340, 82%, 52%)",
+  olympikus: "hsl(200, 70%, 50%)",
 };
 
-export function BrandChart() {
+const brandDisplayNames: Record<string, string> = {
+  nike: "Nike",
+  adidas: "Adidas",
+  asics: "Asics",
+  mizuno: "Mizuno",
+  trackfield: "Track&Field",
+  olympikus: "Olympikus",
+};
+
+interface BrandChartProps {
+  filters?: FilterParams;
+}
+
+export function BrandChart({ filters }: BrandChartProps) {
+  const { data, isLoading, error } = useBrandTimeSeries(filters);
+
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-6 animate-fade-in">
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-foreground">
+            Presença de Marca ao Longo do Tempo
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Carregando dados...
+          </p>
+        </div>
+        <div className="h-[300px] flex items-center justify-center">
+          <div className="text-muted-foreground">Carregando gráfico...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-6 animate-fade-in">
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-foreground">
+            Presença de Marca ao Longo do Tempo
+          </h3>
+          <p className="text-sm text-destructive">
+            Erro ao carregar dados: {error.message}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const chartData = data?.data || [];
+
+  if (chartData.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-6 animate-fade-in">
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-foreground">
+            Presença de Marca ao Longo do Tempo
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Nenhum dado disponível
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Detectar quais marcas estão presentes nos dados
+  const availableBrands = Object.keys(brandColors).filter((brand) =>
+    chartData.some((entry) => entry[brand] !== undefined && entry[brand] !== 0)
+  );
+
   return (
     <div className="rounded-xl border border-border bg-card p-6 animate-fade-in">
       <div className="mb-6">
@@ -25,13 +97,13 @@ export function BrandChart() {
           Presença de Marca ao Longo do Tempo
         </h3>
         <p className="text-sm text-muted-foreground">
-          Aparições detectadas por mês (últimos 6 meses)
+          Itens detectados por mês ({chartData.length} meses)
         </p>
       </div>
 
       <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={mockTimeSeriesData}>
+          <LineChart data={chartData}>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="hsl(222, 30%, 18%)"
@@ -49,7 +121,9 @@ export function BrandChart() {
               fontSize={12}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+              tickFormatter={(value) => 
+                value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value.toString()
+              }
             />
             <Tooltip
               contentStyle={{
@@ -60,47 +134,31 @@ export function BrandChart() {
               }}
               labelStyle={{ color: "hsl(210, 40%, 98%)" }}
               itemStyle={{ color: "hsl(210, 40%, 98%)" }}
+              formatter={(value: number, name: string) => [
+                value.toLocaleString("pt-BR"),
+                brandDisplayNames[name] || name,
+              ]}
             />
             <Legend
               wrapperStyle={{ paddingTop: "20px" }}
               formatter={(value) => (
-                <span style={{ color: "hsl(215, 20%, 55%)", textTransform: "capitalize" }}>
-                  {value}
+                <span style={{ color: "hsl(215, 20%, 55%)" }}>
+                  {brandDisplayNames[value] || value}
                 </span>
               )}
             />
-            <Line
-              type="monotone"
-              dataKey="nike"
-              stroke={brandColors.nike}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4, fill: brandColors.nike }}
-            />
-            <Line
-              type="monotone"
-              dataKey="adidas"
-              stroke={brandColors.adidas}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4, fill: brandColors.adidas }}
-            />
-            <Line
-              type="monotone"
-              dataKey="asics"
-              stroke={brandColors.asics}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4, fill: brandColors.asics }}
-            />
-            <Line
-              type="monotone"
-              dataKey="mizuno"
-              stroke={brandColors.mizuno}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4, fill: brandColors.mizuno }}
-            />
+            {availableBrands.map((brand) => (
+              <Line
+                key={brand}
+                type="monotone"
+                dataKey={brand}
+                stroke={brandColors[brand]}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, fill: brandColors[brand] }}
+                connectNulls
+              />
+            ))}
           </LineChart>
         </ResponsiveContainer>
       </div>

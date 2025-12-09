@@ -8,9 +8,10 @@ interface KPICardProps {
   icon: LucideIcon;
   suffix?: string;
   className?: string;
+  isLoading?: boolean;
 }
 
-export function KPICard({ title, value, change, icon: Icon, suffix, className }: KPICardProps) {
+export function KPICard({ title, value, change, icon: Icon, suffix, className, isLoading }: KPICardProps) {
   const formattedValue = typeof value === "number" 
     ? value.toLocaleString("pt-BR") 
     : value;
@@ -34,7 +35,11 @@ export function KPICard({ title, value, change, icon: Icon, suffix, className }:
         </div>
         
         <div className="mt-3 flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-foreground">{formattedValue}</span>
+          {isLoading ? (
+            <span className="text-3xl font-bold text-muted-foreground animate-pulse">...</span>
+          ) : (
+            <span className="text-3xl font-bold text-foreground">{formattedValue}</span>
+          )}
           {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
         </div>
         
