@@ -67,9 +67,27 @@ async def get_event_brands(
 ):
     """
     Retorna resumo de marcas de um evento
+    
+    - **event_id**: UUID do evento
+    
+    Retorna lista de marcas detectadas no evento, ordenadas por share (maior para menor)
+    Inclui: brand, brand_share_percent, persons_with_brand, total_items
     """
-    # TODO: Implementar na Task 7
-    return {"message": "Not implemented yet"}
+    try:
+        # Verificar se evento existe
+        events_service = EventsService(db)
+        event = events_service.get_event_details(event_id)
+        
+        if not event:
+            raise HTTPException(status_code=404, detail=f"Evento {event_id} não encontrado")
+        
+        # Buscar marcas
+        brands = events_service.get_event_brands(event_id)
+        return {"event_id": event_id, "brands": brands}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar marcas do evento: {str(e)}")
 
 
 @router.get("/events/{event_id}/products")
