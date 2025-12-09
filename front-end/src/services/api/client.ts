@@ -53,6 +53,12 @@ export async function apiClient<T>(
     return text ? JSON.parse(text) : ({} as T);
   } catch (error) {
     if (error instanceof Error) {
+      // Melhorar mensagem de erro para "Failed to fetch"
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        throw new Error(
+          `Não foi possível conectar ao backend. Verifique se o servidor está rodando em ${API_BASE_URL}`
+        );
+      }
       throw error;
     }
     throw new Error('Erro desconhecido ao fazer requisição');

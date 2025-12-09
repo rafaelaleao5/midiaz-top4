@@ -31,7 +31,44 @@ venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 ```
 
-### 3. Testar Conexão
+### 3. Rodar o Backend
+
+```bash
+# Ativar ambiente virtual (se ainda não ativou)
+source venv/bin/activate  # Linux/Mac
+# ou
+venv\Scripts\activate  # Windows
+
+# Rodar o servidor FastAPI
+python -m app.main
+# ou
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+O backend estará disponível em: `http://localhost:8000`
+Documentação da API: `http://localhost:8000/docs`
+
+### 4. Rodar o Frontend
+
+```bash
+cd front-end
+
+# Instalar dependências (se ainda não instalou)
+npm install
+
+# Criar arquivo .env (copiar do .env.example)
+cp .env.example .env
+
+# Editar .env e configurar a URL da API se necessário
+# VITE_API_BASE_URL=http://localhost:8000
+
+# Rodar o servidor de desenvolvimento
+npm run dev
+```
+
+O frontend estará disponível em: `http://localhost:8080`
+
+### 5. Testar Conexão
 
 ```bash
 python scripts/example_connection.py
