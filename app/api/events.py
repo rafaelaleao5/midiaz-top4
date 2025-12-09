@@ -97,9 +97,27 @@ async def get_event_products(
 ):
     """
     Retorna resumo de produtos de um evento
+    
+    - **event_id**: UUID do evento
+    
+    Retorna lista de tipos de produtos detectados no evento, ordenados por share (maior para menor)
+    Inclui: product_type, product_share_percent, persons_with_product, total_items
     """
-    # TODO: Implementar na Task 8
-    return {"message": "Not implemented yet"}
+    try:
+        # Verificar se evento existe
+        events_service = EventsService(db)
+        event = events_service.get_event_details(event_id)
+        
+        if not event:
+            raise HTTPException(status_code=404, detail=f"Evento {event_id} não encontrado")
+        
+        # Buscar produtos
+        products = events_service.get_event_products(event_id)
+        return {"event_id": event_id, "products": products}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar produtos do evento: {str(e)}")
 
 
 @router.get("/metrics/dashboard")
