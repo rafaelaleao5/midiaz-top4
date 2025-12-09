@@ -9,12 +9,13 @@ import { api } from './client';
 export interface Event {
   id: string;
   event_name: string;
-  event_type: string;
+  event_type: 'prova' | 'treino';
+  sport: 'corrida' | 'triathlon' | 'ciclismo' | 'vôlei' | 'futebol';
   event_date: string;
   event_location: string;
   total_photos: number;
   total_athletes_estimated: number;
-  status: string;
+  status: 'created' | 'processing' | 'completed' | 'failed';
   created_at: string;
   processed_at?: string;
   metadata?: Record<string, unknown>;

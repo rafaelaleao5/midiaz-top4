@@ -5,17 +5,19 @@ import type { Event } from "@/services/api/events";
 
 const sportColors: Record<string, string> = {
   corrida: "bg-chart-1/20 text-chart-1 border-chart-1/30",
-  triatlo: "bg-chart-2/20 text-chart-2 border-chart-2/30",
+  triathlon: "bg-chart-2/20 text-chart-2 border-chart-2/30",
   ciclismo: "bg-chart-3/20 text-chart-3 border-chart-3/30",
-  "beach tennis": "bg-chart-4/20 text-chart-4 border-chart-4/30",
+  vôlei: "bg-chart-4/20 text-chart-4 border-chart-4/30",
+  futebol: "bg-chart-5/20 text-chart-5 border-chart-5/30",
 };
 
 const formatSportName = (sport: string): string => {
   const mapping: Record<string, string> = {
     corrida: "Corrida",
-    triatlo: "Triathlon",
+    triathlon: "Triathlon",
     ciclismo: "Ciclismo",
-    "beach tennis": "Beach Tennis",
+    vôlei: "Vôlei",
+    futebol: "Futebol",
   };
   return mapping[sport] || sport;
 };
@@ -71,9 +73,9 @@ export function EventsTable() {
                   </h4>
                   <Badge
                     variant="outline"
-                    className={sportColors[event.event_type] || "bg-muted text-muted-foreground"}
+                    className={sportColors[event.sport] || "bg-muted text-muted-foreground"}
                   >
-                    {formatSportName(event.event_type)}
+                    {formatSportName(event.sport)}
                   </Badge>
                 </div>
                 
