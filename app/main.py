@@ -7,8 +7,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 
-# Importar rotas (serão criadas depois)
-# from app.api.v1 import events, reports, metrics
+# Importar rotas
+from app.api import events
 
 app = FastAPI(
     title=settings.API_TITLE,
@@ -43,10 +43,8 @@ async def health():
     return {"status": "healthy"}
 
 
-# Registrar rotas (descomentar quando criar)
-# app.include_router(events.router, prefix="/api/v1/events", tags=["events"])
-# app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
-# app.include_router(metrics.router, prefix="/api/v1/metrics", tags=["metrics"])
+# Registrar rotas
+app.include_router(events.router, prefix="/api", tags=["events"])
 
 
 if __name__ == "__main__":
