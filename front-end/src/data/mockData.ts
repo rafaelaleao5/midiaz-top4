@@ -167,6 +167,5 @@ export const dashboardKPIs = {
   totalEventsProcessed: 277,
   totalBrandsTracked: 156,
   totalAthletesIdentified: 89420,
-  avgAccuracy: 94.7,
-  processingTime: 2.3,
+  // Removido: avgAccuracy e processingTime (não disponíveis no banco de dados)
 };

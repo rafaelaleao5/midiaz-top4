@@ -6,7 +6,7 @@ import { EventsTable } from "@/components/dashboard/EventsTable";
 import { BrandsRanking } from "@/components/dashboard/BrandsRanking";
 import { SportDistribution } from "@/components/dashboard/SportDistribution";
 import { dashboardKPIs } from "@/data/mockData";
-import { Camera, Calendar, Tag, Users, Gauge, Clock } from "lucide-react";
+import { Camera, Calendar, Tag, Users } from "lucide-react";
 
 const Index = () => {
   return (
@@ -18,7 +18,7 @@ const Index = () => {
         
         <div className="p-6 space-y-6">
           {/* KPI Cards */}
-          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <KPICard
               title="Fotos Analisadas"
               value={dashboardKPIs.totalPhotosAnalyzed}
@@ -43,18 +43,7 @@ const Index = () => {
               change={12.8}
               icon={Users}
             />
-            <KPICard
-              title="Precisão IA"
-              value={dashboardKPIs.avgAccuracy}
-              suffix="%"
-              icon={Gauge}
-            />
-            <KPICard
-              title="Tempo Médio"
-              value={dashboardKPIs.processingTime}
-              suffix="seg/foto"
-              icon={Clock}
-            />
+            {/* Removido: KPIs de Precisão IA e Tempo Médio (não disponíveis no banco) */}
           </section>
 
           {/* Charts Row */}

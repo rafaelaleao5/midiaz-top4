@@ -1,5 +1,4 @@
 import { mockBrandMetrics } from "@/data/mockData";
-import { TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BrandsRanking() {
@@ -31,9 +30,9 @@ export function BrandsRanking() {
               {index + 1}
             </div>
 
-            {/* Logo placeholder */}
+            {/* Logo placeholder - usando primeira letra da marca */}
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-foreground font-bold">
-              {brand.logo}
+              {brand.brand.charAt(0)}
             </div>
 
             {/* Info */}
@@ -41,7 +40,7 @@ export function BrandsRanking() {
               <h4 className="font-medium text-foreground group-hover:text-primary transition-colors">
                 {brand.brand}
               </h4>
-              <p className="text-xs text-muted-foreground">{brand.category}</p>
+              {/* Removido: category (não disponível no banco) */}
             </div>
 
             {/* Stats */}
@@ -49,22 +48,7 @@ export function BrandsRanking() {
               <p className="font-semibold text-foreground">
                 {brand.appearances.toLocaleString("pt-BR")}
               </p>
-              <div className="flex items-center justify-end gap-1">
-                {brand.growthPercent >= 0 ? (
-                  <TrendingUp className="h-3 w-3 text-success" />
-                ) : (
-                  <TrendingDown className="h-3 w-3 text-destructive" />
-                )}
-                <span
-                  className={cn(
-                    "text-xs font-medium",
-                    brand.growthPercent >= 0 ? "text-success" : "text-destructive"
-                  )}
-                >
-                  {brand.growthPercent >= 0 ? "+" : ""}
-                  {brand.growthPercent}%
-                </span>
-              </div>
+              {/* Removido: growthPercent (não temos histórico para calcular) */}
             </div>
 
             {/* Market share bar */}

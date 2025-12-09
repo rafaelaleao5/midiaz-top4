@@ -27,6 +27,9 @@ export function BrandChart() {
         <p className="text-sm text-muted-foreground">
           Aparições detectadas por mês (últimos 6 meses)
         </p>
+        <p className="text-xs text-muted-foreground mt-2 italic">
+          Nota: Dados temporais não disponíveis no banco atual. Componente aguardando integração com API.
+        </p>
       </div>
 
       <div className="h-[300px]">

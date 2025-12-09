@@ -57,15 +57,13 @@ class EventsService:
         """
         Retorna KPIs agregados para o dashboard
         Calcula métricas gerais do sistema
+        
+        Retorna apenas métricas disponíveis no banco de dados:
+        - total_events
+        - total_photos_analyzed
+        - total_athletes_identified
+        - total_brands_tracked
         """
         metrics = self.db.get_dashboard_metrics()
-        
-        # Adicionar métricas calculadas
-        # Precisão média (placeholder - pode ser calculada depois)
-        metrics["avg_accuracy"] = 94.7  # TODO: Calcular baseado em dados reais
-        
-        # Tempo médio de processamento (placeholder)
-        metrics["avg_processing_time"] = 2.3  # TODO: Calcular baseado em dados reais
-        
         return metrics
 
