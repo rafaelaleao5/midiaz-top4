@@ -93,9 +93,8 @@ midiaz-top4/
 │   └── package.json
 ├── docs/                    # Documentação
 │   └── context/
-│       ├── database_schema_and_seed.sql  # Schema do banco
-│       └── arquivos_originais/           # Arquivos .docx e .pdf
-├── tests/                   # Testes
+│       ├── script_database/             # Schema do banco
+│       └── arquivos_originais/          # Arquivos .docx e .pdf
 ├── CONTEXT.md               # Contexto e diretrizes para desenvolvimento
 ├── README.md                # Este arquivo
 └── requirements.txt         # Dependências Python
@@ -286,15 +285,13 @@ Instruções:
 
 ## 🧪 Testes
 
+> **Nota:** Testes ainda não implementados. Planejado para próximas iterações.
+
 ```bash
-# Testes unitários
-pytest tests/unit/
-
-# Testes de integração
-pytest tests/integration/
-
-# Todos os testes
-pytest
+# Quando implementados, os testes seguirão a estrutura:
+# pytest tests/unit/        # Testes unitários
+# pytest tests/integration/ # Testes de integração
+# pytest                    # Todos os testes
 ```
 
 ---
