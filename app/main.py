@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 
 # Importar rotas
-from app.api import events
+from app.api import events, reports
 
 app = FastAPI(
     title=settings.API_TITLE,
@@ -45,6 +45,7 @@ async def health():
 
 # Registrar rotas
 app.include_router(events.router, prefix="/api", tags=["events"])
+app.include_router(reports.router, prefix="/api", tags=["reports"])
 
 
 if __name__ == "__main__":
