@@ -27,15 +27,17 @@ A **Midiaz B2B** é uma solução analítica que transforma fotos de eventos esp
 app/                    # Backend FastAPI
 ├── api/               # Rotas HTTP (controllers)
 ├── core/              # Lógica de negócio (use cases)
-├── services/          # Serviços externos (database, OpenAI, etc)
+├── services/          # Serviços externos (database, OpenAI)
+├── schemas/           # Modelos Pydantic (request/response)
+├── prompts/           # Templates de prompt para LLM
 ├── config.py          # Configurações centralizadas
 └── main.py            # Entry point
 
 front-end/             # Frontend React
 ├── src/
-│   ├── components/   # Componentes React reutilizáveis
+│   ├── components/    # Componentes React reutilizáveis
 │   ├── pages/         # Páginas da aplicação
-│   ├── services/     # Clientes de API
+│   ├── services/      # Clientes de API
 │   └── hooks/         # React Hooks customizados
 ```
 
@@ -125,18 +127,19 @@ front-end/             # Frontend React
 
 ### ✅ Implementado
 - Banco de dados configurado (30 eventos, 5.783 pessoas, 13.792 itens)
-- API FastAPI com endpoints funcionais (eventos, marcas, produtos, métricas)
-- Frontend React com dashboard básico
+- API FastAPI com arquitetura em camadas (API → Core → Services)
+- Endpoints funcionais: eventos, marcas, produtos, métricas, relatórios
+- Frontend React com dashboard interativo
 - Integração backend-frontend via React Query
+- Geração de relatórios com LLM (OpenAI GPT-4o-mini)
+- Três tipos de relatórios: Market Share, Segmentação de Público, Métricas do Evento
+- Prompts estruturados em arquivo YAML (`app/prompts/reports.yaml`)
+- Deploy automatizado: Railway (backend) + Vercel (frontend)
 
-### 🔨 Em Desenvolvimento
-- Geração de relatórios com LLM (design de prompt já definido)
-- Integração de dados temporais no BrandChart (atualmente usa mock)
-
-### 📋 Planejado
+### 📋 Planejado (próximas iterações)
 - Processamento de imagens com visão computacional
 - Pipeline completo de detecção de marcas e produtos
-- Páginas pendentes: Reports (parcial), Data, Settings, Api
+- Páginas pendentes: Data, Settings, Api
 
 ---
 
