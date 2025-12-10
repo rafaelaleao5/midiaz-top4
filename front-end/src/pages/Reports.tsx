@@ -414,12 +414,12 @@ const Reports = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-foreground">Esporte</label>
-                        <Select value={sport} onValueChange={setSport}>
+                        <Select value={sport || "__all__"} onValueChange={(v) => setSport(v === "__all__" ? "" : v)}>
                           <SelectTrigger>
                             <SelectValue placeholder="Todos" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Todos</SelectItem>
+                            <SelectItem value="__all__">Todos</SelectItem>
                             {SPORTS.map(s => (
                               <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                             ))}
@@ -429,12 +429,12 @@ const Reports = () => {
 
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-foreground">Local</label>
-                        <Select value={location} onValueChange={setLocation}>
+                        <Select value={location || "__all__"} onValueChange={(v) => setLocation(v === "__all__" ? "" : v)}>
                           <SelectTrigger>
                             <SelectValue placeholder="Todos" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Todos</SelectItem>
+                            <SelectItem value="__all__">Todos</SelectItem>
                             {LOCATIONS.map(l => (
                               <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
                             ))}
@@ -445,12 +445,12 @@ const Reports = () => {
 
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-foreground">Tipo de Produto</label>
-                      <Select value={productType} onValueChange={setProductType}>
+                      <Select value={productType || "__all__"} onValueChange={(v) => setProductType(v === "__all__" ? "" : v)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Todos" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Todos</SelectItem>
+                          <SelectItem value="__all__">Todos</SelectItem>
                           {PRODUCTS.map(p => (
                             <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
                           ))}
