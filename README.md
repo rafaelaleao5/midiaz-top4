@@ -135,8 +135,9 @@ O schema completo está em `docs/context/script_database/database_schema_and_see
 - **State Management**: React Query (TanStack Query)
 - **Charts**: Recharts
 - **API Client**: Supabase Python Client (API REST)
-- **LLM**: OpenAI API (planejado para geração de relatórios)
+- **LLM**: OpenAI API (GPT-4o-mini para geração de relatórios)
 - **Validação**: Pydantic
+- **Deploy**: Railway (backend) + Vercel (frontend)
 
 ---
 
@@ -152,6 +153,10 @@ O schema completo está em `docs/context/script_database/database_schema_and_see
 - `GET /api/metrics/dashboard` - KPIs agregados para o dashboard
 - `GET /api/metrics/brands/timeseries` - Dados temporais de marcas por mês
 
+### Relatórios (LLM)
+- `GET /api/reports/status` - Verifica disponibilidade do serviço
+- `POST /api/reports/generate` - Gera relatório analítico com IA
+
 Documentação completa: `http://localhost:8000/docs`
 
 ---
@@ -160,19 +165,18 @@ Documentação completa: `http://localhost:8000/docs`
 
 ### ✅ Implementado
 1. Banco configurado no Supabase com dados de exemplo
-2. API FastAPI básica implementada
+2. API FastAPI com arquitetura em camadas (API → Core → Services)
 3. Endpoints funcionais: eventos, marcas, produtos, métricas
 4. Frontend React com dashboard interativo
 5. Integração backend-frontend via React Query
+6. Geração de relatórios com LLM (OpenAI GPT-4o-mini)
+7. Três tipos de relatórios: Market Share, Segmentação de Público, Métricas do Evento
+8. Deploy automatizado (Railway + Vercel)
 
-### 🔨 Em Desenvolvimento
-- Geração de relatórios com LLM (design de prompt já definido)
-- Integração de dados temporais no BrandChart (atualmente usa mock)
-
-### 📋 Planejado
+### 📋 Planejado (próximas iterações)
 - Processamento de imagens com visão computacional
 - Pipeline completo de detecção de marcas e produtos
-- Páginas pendentes: Reports (parcial), Data, Settings, Api
+- Páginas pendentes: Data, Settings, Api
 
 ---
 
@@ -252,35 +256,27 @@ front-end/src/
 
 O sistema usa LLM (OpenAI) para gerar relatórios em linguagem natural. O prompt foi projetado seguindo boas práticas:
 
-**Template:**
-```
-Você é um analista de marketing esportivo da plataforma Midiaz.
+Os prompts são estruturados seguindo boas práticas de engenharia de prompt:
 
-Com base nas seguintes informações visuais, gere um relatório executivo sobre a presença de marca.
+- **Role Prompting**: Persona de analista especializado (ex: "Analista Sênior de Inteligência de Mercado")
+- **Context Setting**: Expertise, objetivo e diretrizes de comunicação
+- **Structured Input**: Dados formatados e organizados por seção
+- **Task Decomposition**: Estrutura clara do relatório esperado
+- **Output Format**: Especificações de extensão, tom e idioma
+- **Constraints**: Restrições explícitas (não inventar dados, não mencionar metodologia)
 
-Dados:
-- Evento: {nome_evento}
-- Local: {local_evento}
-- Data: {data_evento}
-- Total de atletas identificados: {total_atletas}
-- Total de imagens analisadas: {total_imagens}
-- Marcas detectadas e frequência: {lista_marcas}
+Os prompts estão organizados em `app/prompts/reports.yaml` para fácil manutenção.
 
-Instruções:
-1. Resuma os principais destaques sobre a presença de marca.
-2. Destaque a marca mais recorrente e o tipo de produto mais identificado.
-3. Contextualize brevemente o tipo de evento esportivo.
-4. A saída deve estar em linguagem natural, formal e voltada para gestores de marketing esportivo.
-5. Finalize o relatório com um insight estratégico curto (1 frase).
-```
+**Tipos de Relatório:**
+1. **Market Share**: Análise de participação de mercado das marcas
+2. **Segmentação de Público**: Perfil demográfico e preferências por segmento
+3. **Métricas do Evento**: Resumo executivo de um evento específico
 
 **Critérios de Qualidade:**
-- 100-200 palavras
-- Mencionar 3+ marcas e 2+ produtos
-- Contextualizar tipo de evento e data
-- Incluir insight estratégico
-- Texto claro, formal, sem jargões técnicos
-- Sem alucinações (informações não presentes na entrada)
+- 200-280 palavras por relatório
+- Dados sempre baseados nos inputs fornecidos
+- Tom profissional e orientado a dados
+- Insight estratégico acionável ao final
 
 ---
 
